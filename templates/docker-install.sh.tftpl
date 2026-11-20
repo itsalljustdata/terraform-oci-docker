@@ -1,0 +1,80 @@
+#!/bin/bash
+set -eu
+
+if [ "${enabled}" == "true" ]; then
+    :
+else
+    echo "INFO: docker.enabled = false"
+    exit 0
+fi
+
+
+if command -v docker >/dev/null 2>&1; then
+    echo "INFO: docker already installed"
+    exit 0
+fi
+
+echo "------------------------------------------------------------"
+echo "Docker install"
+echo "------------------------------------------------------------"
+
+apt install -y ca-certificates curl
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+
+# Add the repository to Apt sources:
+sudo tee /etc/apt/sources.list.d/docker.sources <<EOF
+Types: deb
+URIs: https://download.docker.com/linux/ubuntu
+Suites: $(. /etc/os-release && echo "$${UBUNTU_CODENAME:-$VERSION_CODENAME}")
+Components: stable
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
+
+apt update
+
+apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+
+dockerDataDir="/mnt/data/`hostname -s`/docker"
+containerdDataDir="/mnt/data/`hostname -s`/containerd"
+export dockerDataDir containerdDataDir
+for dir in "$${dockerDataDir}" "$containerdDataDir"; do
+    mkdir -p "$dir"
+    chown root:docker "$dir"
+    chmod 775 "$dir"
+done
+python3 << 'pyEOF'
+import os
+docker_data_dir = os.environ.get("dockerDataDir")
+daemon_json_path = "/etc/docker/daemon.json"
+if docker_data_dir:
+    print(f"INFO: Docker data directory is {docker_data_dir}")
+    if os.path.exists(daemon_json_path):
+        import json
+        with open(daemon_json_path, "r") as f:
+            config = json.load(f)
+    else:
+        config = {}
+    
+    config["data-root"] = docker_data_dir
+    with open(daemon_json_path, "w") as f:
+        json.dump(config, f, indent=4)
+
+    print(f"INFO: Docker daemon.json updated with data-root {docker_data_dir}")
+
+pyEOF
+
+containerd_config_path="/etc/containerd/config.toml"
+sed -i "s|^root|#root|g" "$${containerd_config_path}"
+echo "root = \"$${containerdDataDir}\"" | tee -a "$${containerd_config_path}"
+
+systemctl enable --now docker
+
+if id -u "${vm_user}" >/dev/null 2>&1; then
+    usermod -aG docker "${vm_user}" || true
+fi
+
+docker --version

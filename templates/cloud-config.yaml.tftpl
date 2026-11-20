@@ -1,0 +1,78 @@
+#cloud-config
+ssh_pwauth: true
+package_update: true
+package_upgrade: true
+%{ if length(packages) > 0 }packages:%{ for pkg in packages }
+  - ${pkg}%{ endfor }%{ endif }
+write_files:
+  - path: /usr/local/sbin/mount-block-volumes.sh
+    permissions: '0755'
+    owner: root:root
+    content: |
+      ${replace(trimspace(mount_block_volumes_content), "\n", "\n      ")}
+  - path: /usr/local/sbin/configure-ssh.sh
+    permissions: '0755'
+    owner: root:root
+    content: |
+      ${replace(trimspace(configure_ssh_content), "\n", "\n      ")}
+  - path: /usr/local/sbin/configure-firewall.sh
+    permissions: '0755'
+    owner: root:root
+    content: |
+      ${replace(trimspace(configure_firewall_content), "\n", "\n      ")}
+  - path: /usr/local/sbin/wait-for-block-volume.sh
+    permissions: '0755'
+    owner: root:root
+    content: |
+      ${replace(trimspace(wait_for_block_volume_content), "\n", "\n      ")}
+  - path: /etc/systemd/system/bastion-mount.service
+    permissions: '0644'
+    owner: root:root
+    content: |
+      ${replace(trimspace(bastion_mount_service_content), "\n", "\n      ")}
+  - path: /usr/local/sbin/netbird-setup.sh
+    permissions: '0755'
+    owner: root:root
+    content: |
+      ${replace(trimspace(configure_netbird_content), "\n", "\n      ")}
+  - path: /usr/local/sbin/pangolin-setup.sh
+    permissions: '0755'
+    owner: root:root
+    content: |
+      ${replace(trimspace(configure_pangolin_content), "\n", "\n      ")}
+  - path: /usr/local/sbin/configure-cloudflared.sh
+    permissions: '0600'
+    owner: root:root
+    content: |
+      ${replace(trimspace(configure_cloudflared_content), "\n", "\n      ")}
+  - path: /usr/local/sbin/cloudflare-warp-setup.sh
+    permissions: '0600'
+    owner: root:root
+    content: |
+      ${replace(trimspace(configure_warp_content), "\n", "\n      ")}
+  - path: /usr/local/sbin/docker-install.sh
+    permissions: '0755'
+    owner: root:root
+    content: |
+      ${replace(trimspace(configure_docker_content), "\n", "\n      ")}
+users:
+  - name: ${vm_user}
+    shell: /bin/bash
+    lock_passwd: false
+    plain_text_passwd: "${vm_password}"
+  - name: root
+    shell: /bin/bash
+    lock_passwd: false
+    plain_text_passwd: "${vm_password}"
+bootcmd:
+  - if [ -x /usr/bin/rescan-scsi-bus.sh ]; then cloud-init-per once rescan-scsi /usr/bin/rescan-scsi-bus.sh; fi
+runcmd:
+  - bash /usr/local/sbin/configure-ssh.sh
+  - bash /usr/local/sbin/configure-firewall.sh
+  - systemctl daemon-reload
+  - systemctl enable --now bastion-mount.service
+  - bash /usr/local/sbin/netbird-setup.sh
+  - bash /usr/local/sbin/configure-cloudflared.sh
+  - bash /usr/local/sbin/cloudflare-warp-setup.sh
+  - bash /usr/local/sbin/docker-install.sh
+  - bash /usr/local/sbin/pangolin-setup.sh

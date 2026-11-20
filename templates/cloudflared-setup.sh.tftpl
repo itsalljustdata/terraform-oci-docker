@@ -1,0 +1,39 @@
+#!/bin/bash
+set -eu
+
+if [ "${enabled}" == "true" ]; then
+    :
+else
+    echo "INFO: netbird.enabled = false"
+    exit 0
+fi
+
+rpmPath=/tmp/cloudflared.rpm
+rpmURL=https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-`uname -p`.rpm
+
+echo "------------------------------------------------------"
+echo "cloudflared URL : $${rpmURL}"
+echo "------------------------------------------------------"
+
+wget --quiet --output-document=$${rpmPath} $${rpmURL}
+
+ls -l $${rpmPath}
+
+rpm --quiet -U $${rpmPath}
+
+echo "------------------------------------------------------"
+echo "Version: `cloudflared version --short`"
+echo "------------------------------------------------------"
+
+rm -f $${rpmPath}
+
+# tokenFile=/etc/cloudflared/token
+# mkdir -p "`dirname $${tokenFile}`"
+# echo ${tunnel_token} > "$${tokenFile}"
+# chmod 600 "$${tokenFile}"
+
+cloudflared service install "${tunnel_token}"
+
+echo "------------------------------------------------------"
+echo "Script Completed"
+echo "------------------------------------------------------"

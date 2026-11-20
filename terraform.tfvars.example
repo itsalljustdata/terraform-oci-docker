@@ -1,0 +1,80 @@
+# Copy this file to terraform.tfvars and replace the example values with your real OCI values.
+# Keep this file out of source control if it contains real secrets or credentials.
+
+oci = {
+  tenancy_ocid     = "ocid1.tenancy.oc1..exampletenancy"
+  compartment_ocid = "ocid1.compartment.oc1..examplecompartment"
+  region           = "ap-sydney-1"
+  user_ocid        = "ocid1.user.oc1..exampleuser"
+  fingerprint      = "AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD"
+  private_key_path = "~/.ssh/id_ed25519"
+}
+
+stack = {
+  prefix            = "proxmox"
+  name              = ""
+  domain_suffix     = "example.com"
+  vcn_dns_prefix    = "vcn"
+  dns_prefix_subnet = "subnet"
+}
+
+network = {
+  vcn_cidr_blocks   = ["10.0.0.0/16"]
+  subnet_cidr_block = "10.0.70.0/24"
+}
+
+ssh = {
+  public_key_file   = "~/.ssh/id_ed25519.pub"
+  public_port       = 1755
+  ssh_allowed_cidrs = ["203.0.113.10/32"]
+  ssh_log_level     = "INFO"
+  ssh_aliases       = ["proxmox-oci", "proxmoxOCI"]
+}
+
+vm = {
+  user               = "root"
+  password           = "ChangeMeStrongPassword123!"
+  timezone           = "Australia/Perth"
+  image_ocid         = "ocid1.image.oc1.ap-sydney-1...example"
+  shape              = "VM.Standard.A1.Flex"
+  create_reserved_ip = true
+  shape_config = {
+    ocpus        = 1
+    memory_in_gbs = 6
+  }
+}
+
+storage = {
+  block_vol_mounts = [
+    {
+      ocid          = "ocid1.volume.oc1..examplevolume"
+      device        = ""
+      path          = "/mnt/data"
+      fs_type       = "ext4"
+      mount_options = ["defaults", "nofail"]
+      format        = true
+    }
+  ]
+}
+
+
+docker = {
+  enabled = true
+}
+
+netbird = {
+  enabled        = false
+  setup_key      = ""
+  management_url = "https://api.netbird.io"
+  extra_flags    = []
+}
+
+cloudflared = {
+  enabled      = false
+  tunnel_token = ""
+}
+
+warp = {
+  enabled      = false
+  tunnel_token = ""
+}

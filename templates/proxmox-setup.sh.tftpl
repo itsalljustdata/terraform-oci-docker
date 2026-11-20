@@ -1,0 +1,16 @@
+#!/bin/bash
+set -eu
+
+if [ "${enabled}" == "true" ]; then
+    :
+else
+    echo "INFO: proxmox.enabled = false"
+    exit 0
+fi
+
+mkdir -p /etc/cloud
+
+tee -a /etc/cloud/cloud.cfg > /dev/null << 'EOF'
+preserve_hostname: true
+hostname: `hostname -s`
+EOF

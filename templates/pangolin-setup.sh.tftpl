@@ -1,0 +1,45 @@
+#!/bin/bash
+set -eu
+
+if [ "${enabled}" == "true" ]; then
+    :
+else
+    echo "INFO: pangolin.enabled = false"
+    exit 0
+fi
+
+curl -fsSL https://static.pangolin.net/get-cli.sh | bash
+
+# Create the directory and environment file
+install -d -m 0755 /etc/pangolin
+tee /etc/pangolin/pangolin-site.env > /dev/null << 'EOF_ENV'
+SITE_ID=${site_id}
+SITE_SECRET=${site_secret}
+PANGOLIN_ENDPOINT=${endpoint}
+EOF_ENV
+chmod 600 /etc/pangolin/pangolin-site.env
+
+tee /etc/systemd/system/pangolin-site.service > /dev/null << 'EOF_SVC'
+[Unit]
+Description=Pangolin Site
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+EnvironmentFile=/etc/pangolin/pangolin-site.env
+ExecStart=/usr/local/bin/pangolin up site
+Restart=always
+RestartSec=2
+UMask=0077
+
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+EOF_SVC
+
+systemctl daemon-reload
+systemctl enable --now pangolin-site

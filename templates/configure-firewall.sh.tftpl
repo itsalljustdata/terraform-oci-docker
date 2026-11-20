@@ -1,0 +1,23 @@
+#!/bin/bash
+set -eu
+if ! command -v firewall-cmd >/dev/null 2>&1; then
+  echo "firewall-cmd not found, skipping firewall configuration" >&2
+  exit 0
+fi
+
+systemctl enable --now firewalld
+
+# OCI security rules enforce who may reach these ports; the VM firewall simply keeps the
+# internal VCN SSH port and the public SSH port open for the allowed traffic.
+firewall-cmd --permanent --add-port=22/tcp --quiet
+
+if [ "${ssh_public_port}" = "22" ]; then
+  # Same port is used for both internal and external access, so no separate rule is needed.
+  :
+else
+  firewall-cmd --permanent --add-port=${ssh_public_port}/tcp --quiet
+fi
+
+firewall-cmd --permanent --add-port=8006/tcp --quiet
+
+firewall-cmd --reload --quiet

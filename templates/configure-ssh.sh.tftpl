@@ -1,0 +1,48 @@
+#!/bin/bash
+set -eu
+
+sshd_dir="/etc/ssh/sshd_config.d"
+port_drop_in="$${sshd_dir}/99-bastion-ports.conf"
+auth_drop_in="$${sshd_dir}/98-bastion-auth.conf"
+
+if [ ! -d "$${sshd_dir}" ]; then
+  mkdir -p "$${sshd_dir}"
+  if ! grep -Fqx 'Include /etc/ssh/sshd_config.d/*.conf' /etc/ssh/sshd_config 2>/dev/null; then
+    printf '\nInclude /etc/ssh/sshd_config.d/*.conf\n' >> /etc/ssh/sshd_config
+  fi
+fi
+
+cat > "$${port_drop_in}" <<'PORT_EOF'
+# Managed by Terraform.
+Port 22
+PORT_EOF
+
+if [ "${ssh_public_port}" != "22" ]; then
+  printf 'Port %s\n' "${ssh_public_port}" >> "$${port_drop_in}"
+  semanage port -a -t ssh_port_t -p tcp "${ssh_public_port}" || true
+fi
+
+theFile="/etc/ssh/authorized_keys"
+
+authKeysVal=$(sshd -T | grep authorizedkeysfile)
+
+cat > "$${auth_drop_in}" <<'AUTH_EOF'
+# Managed by Terraform.
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+UsePAM yes
+AUTH_EOF
+
+printf '%s %s\n' "$${authKeysVal}" "$${theFile}" >> "$${auth_drop_in}"
+
+if [ ! -f "$${theFile}" ]; then
+  touch "$${theFile}"
+  printf '%s\n' "${ssh_public_key}" > "$${theFile}"
+fi
+
+sudoersFile="/etc/sudoers.d/080-cloud-init-users"
+echo "%${vm_user} ALL=(ALL) NOPASSWD: ALL" > "$${sudoersFile}"
+chmod 0440 "$${sudoersFile}"
+
+systemctl daemon-reload
+systemctl restart sshd
