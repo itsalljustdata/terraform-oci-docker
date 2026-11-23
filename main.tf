@@ -468,7 +468,6 @@ resource "oci_core_instance" "compute_instance" {
     git_remote          = local.git.remote_url
     git_source          = local.git.source
     git_dirty           = local.git.is_dirty
-    user_data           = base64encode(local.cloud_init_rendered)
   }
 
   agent_config {
@@ -482,10 +481,6 @@ resource "oci_core_instance" "compute_instance" {
     }
     plugins_config {
       name          = "Custom Logs Monitoring"
-      desired_state = "ENABLED"
-    }
-    plugins_config {
-      name          = "OS Management Hub"
       desired_state = "ENABLED"
     }
     plugins_config {
