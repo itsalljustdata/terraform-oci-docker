@@ -1,23 +1,41 @@
 #!/bin/bash
 set -eu
-if ! command -v firewall-cmd >/dev/null 2>&1; then
-  echo "firewall-cmd not found, skipping firewall configuration" >&2
+
+
+echo "Configuring firewall..."
+echo "Checking for firewall tools..."
+firewallCmdFound=`command -v firewall-cmd >/dev/null 2>&1`
+ufwFound=`command -v ufw >/dev/null 2>&1`
+
+echo "firewall-cmd : $${firewallCmdFound}"
+echo "ufw          : $${ufwFound}"
+
+ports=(22)
+if [[ "${ssh_public_port}" != "22" ]]; then
+  ports+=("${ssh_public_port}")
+fi
+
+if [ "$${firewallCmdFound}" != "" ]; then
+  systemctl enable --now firewalld
+  firewall-cmd --add-service=ssh --permanent
+  for port in "${ports[@]}"; do
+    firewall-cmd --permanent --add-port=$${port}/tcp --quiet
+  done
+  firewall-cmd --reload --quiet
+  firewall-cmd --list-all --quiet
+elif [ "$${ufwFound}" != "" ]; then
+  ufw default deny incoming
+  ufw default allow outgoing
+  ufw allow OpenSSH
+  for port in "${ports[@]}"; do
+    ufw allow $${port}/tcp
+  done
+  ufw --force enable
+  for stat in "numbered verbose"; do
+    ufw status $${stat}
+  done
+else
+  echo "WARNING: No supported firewall found, skipping firewall configuration" >&2
   exit 0
 fi
-
-systemctl enable --now firewalld
-
-# OCI security rules enforce who may reach these ports; the VM firewall simply keeps the
-# internal VCN SSH port and the public SSH port open for the allowed traffic.
-firewall-cmd --permanent --add-port=22/tcp --quiet
-
-if [ "${ssh_public_port}" = "22" ]; then
-  # Same port is used for both internal and external access, so no separate rule is needed.
-  :
-else
-  firewall-cmd --permanent --add-port=${ssh_public_port}/tcp --quiet
-fi
-
-firewall-cmd --permanent --add-port=8006/tcp --quiet
-
-firewall-cmd --reload --quiet
+echo "Firewall configuration completed."

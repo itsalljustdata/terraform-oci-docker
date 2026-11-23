@@ -234,12 +234,13 @@ locals {
 
   packages_defaults = [
     "curl",
-    "git",
-    "nano",
-    "wget",
-    "jq",
-    "htop",
     "fastfetch"
+    "git",
+    "htop",
+    "jq",
+    "nano",
+    "ufw",
+    "wget",
   ]
 
   vm_defaults = {

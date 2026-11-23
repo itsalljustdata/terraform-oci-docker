@@ -18,7 +18,7 @@ echo "------------------------------------------------------------"
 echo "Docker install"
 echo "------------------------------------------------------------"
 
-apt install -y ca-certificates curl
+apt install --quiet -y ca-certificates curl
 install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
 chmod a+r /etc/apt/keyrings/docker.asc
@@ -35,12 +35,13 @@ EOF
 
 apt update
 
-apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+apt install --quiet -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
 
 dockerDataDir="/mnt/data/`hostname -s`/docker"
 containerdDataDir="/mnt/data/`hostname -s`/containerd"
-export dockerDataDir containerdDataDir
+containerd_config_path="/etc/containerd/config.toml"
+export dockerDataDir containerdDataDir containerd_config_path
 for dir in "$${dockerDataDir}" "$containerdDataDir"; do
     mkdir -p "$dir"
     chown root:docker "$dir"
@@ -68,11 +69,37 @@ if docker_data_dir:
 
 pyEOF
 
-containerd_config_path="/etc/containerd/config.toml"
-sed -i "s|^root|#root|g" "$${containerd_config_path}"
-echo "root = \"$${containerdDataDir}\"" | tee -a "$${containerd_config_path}"
+python3 << 'pyEOF2'
+from pathlib import Path
+import os
+containerd_config_path = os.environ.get("containerd_config_path")
+containerd_data_dir = os.environ.get("containerdDataDir")
+config_path = Path(containerd_config_path)
+if config_path.exists():
+    config = config_path.read_text().split("\n")
+else:
+    print (f"WARNING: Containerd config path ('{containerd_config_path}') does not exist. Using default configuration.")
+    config = []
 
-systemctl enable --now docker
+rootLine = f'root = "{containerd_data_dir}"'
+for i, line in enumerate(config):
+    if "root=" in line.strip().replace(' ',''):
+        config[i] = rootLine
+        break
+else:
+    config.append(rootLine)
+
+config_path.write_text("\n".join(config))
+pyEOF2
+
+srvs="docker containerd"
+actions="enable restart"
+for srv in $${srvs}; do
+    for a in $${actions}; do
+        echo "INFO: $${a} $${srv}"
+        systemctl $${a} --now $${srv} 2>&1
+    done
+done
 
 if id -u "${vm_user}" >/dev/null 2>&1; then
     usermod -aG docker "${vm_user}" || true
