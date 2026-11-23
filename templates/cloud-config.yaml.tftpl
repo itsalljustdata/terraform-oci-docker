@@ -5,7 +5,7 @@
 #   git.source       = ${git.source}
 #   git.is_dirty     = ${git.is_dirty}
 #
-ssh_pwauth: true
+ssh_pwauth: false
 package_update: true
 package_upgrade: true
 no_ssh_fingerprints: true
@@ -16,7 +16,7 @@ ssh:
   - ${pkg}
 %{ endfor ~}
 %{ endif ~}
-write_files:
+%{ if length(cloud_init_files) > 0 ~}write_files:
 %{ for name, file in cloud_init_files ~}
   - path: ${coalesce(try(file.path, null), "/usr/local/sbin")}/${coalesce(try(file.name, null), name)}
     permissions: '${coalesce(try(file.permissions, null), "0755")}'
@@ -24,6 +24,7 @@ write_files:
     content: |
       ${replace(trimspace(file.content), "\n", "\n      ")}
 %{ endfor ~}
+%{ endif ~}
 %{ if length(theUsers) > 0 }users:
 %{ for user in theUsers ~}
   - name: ${user}

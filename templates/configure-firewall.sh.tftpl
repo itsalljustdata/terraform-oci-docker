@@ -10,12 +10,21 @@ cmdUfw=`command -v ufw || echo ""`
 echo "DEBUG: firewall-cmd : $${cmdFirewallCmd}"
 echo "DEBUG: ufw          : $${cmdUfw}"
 
-ports=(22)
-if [[ "${ssh_public_port}" != "22" ]]; then
-  ports+=("${ssh_public_port}")
-fi
-
-if [ "$${cmdFirewallCmd}" != "" ]; then
+if [ "$${cmdUfw}" != "" ]; then
+  ufw default deny incoming >/dev/null 2>&1
+  ufw default allow outgoing >/dev/null 2>&1
+  ufw allow OpenSSH >/dev/null 2>&1
+%{ if ssh_public_port != "22" }
+  ufw allow ${ssh_public_port}/tcp >/dev/null 2>&1
+%{ endif }
+  ufw --force enable >/dev/null 2>&1
+  ufw status verbose
+elif [ "$${cmdFirewallCmd}" != "" ]; then
+  %{ if ssh_public_port != "22" }
+  ports=(22 ${ssh_public_port})
+  %{ else }
+  ports=(22)
+  %{ endif }
   systemctl enable --now firewalld
   firewall-cmd --add-service=ssh --permanent
   for port in "$${ports[@]}"; do
@@ -23,17 +32,6 @@ if [ "$${cmdFirewallCmd}" != "" ]; then
   done
   firewall-cmd --reload --quiet
   firewall-cmd --list-all --quiet
-elif [ "$${cmdUfw}" != "" ]; then
-  ufw default deny incoming
-  ufw default allow outgoing
-  ufw allow OpenSSH
-  for port in "$${ports[@]}"; do
-    ufw allow $${port}/tcp
-  done
-  ufw --force enable
-  for stat in "numbered verbose"; do
-    ufw status $${stat}
-  done
 else
   echo "ERROR: No supported firewall found (firewall-cmd, ufw), skipping firewall configuration" >&2
   exit 1
