@@ -4,12 +4,9 @@ output "ssh" {
 }
 
 output "vm" {
-  value       = local.vm
-  description = "VM login and timezone settings grouped as one object."
-  sensitive   = true
-}
-
-output "storage" {
-  value       = local.storage
-  description = "Block volume mount settings grouped as one object."
+  value = {
+    for key, value in local.vm : key => value
+    if !contains(["password_hash"], key)
+  }
+  description = "VM settings grouped as an object."
 }

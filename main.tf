@@ -62,75 +62,75 @@ locals {
 
   cloud_init_files = {
     "mount-block-volumes.sh" = {
-      content          = templatefile("${path.module}/templates/mount-block-volumes.sh.tftpl", {
+      content = templatefile("${path.module}/templates/mount-block-volumes.sh.tftpl", {
         mount_entries = local.storage.block_vol_mounts
         vm_name       = local.this_vm_name
       })
     }
     "configure-ssh.sh" = {
-      content          = templatefile("${path.module}/templates/configure-ssh.sh.tftpl", {
+      content = templatefile("${path.module}/templates/configure-ssh.sh.tftpl", {
         ssh_public_port = local.ssh.public_port
         vm_user         = local.vm.user
         ssh_public_keys = local.ssh_public_keys_content
       })
-      runcmd_order   = 10
+      runcmd_order = 10
     }
     "configure-firewall.sh" = {
-      content          = templatefile("${path.module}/templates/configure-firewall.sh.tftpl", {
+      content = templatefile("${path.module}/templates/configure-firewall.sh.tftpl", {
         ssh_public_port = local.ssh.public_port
       })
-      runcmd_order   = 20
+      runcmd_order = 20
     }
     "wait-for-block-volume.sh" = {
-      content          = templatefile("${path.module}/templates/wait-for-block-volume.sh.tftpl", {})
-      name  = "wait-for-block-volume.sh"
+      content = templatefile("${path.module}/templates/wait-for-block-volume.sh.tftpl", {})
+      name    = "wait-for-block-volume.sh"
     }
     "block-volume-mount.service" = {
-      path             = "/etc/systemd/system"
-      permissions      = "0644"
-      content          = templatefile("${path.module}/templates/block-volume-mount.service.tftpl", {})
+      path        = "/etc/systemd/system"
+      permissions = "0644"
+      content     = templatefile("${path.module}/templates/block-volume-mount.service.tftpl", {})
     }
     "enable-block-volume-service.sh" = {
-      content          = templatefile("${path.module}/templates/enable-block-volume-service.sh.tftpl", {})
-      runcmd_order   = 30
+      content      = templatefile("${path.module}/templates/enable-block-volume-service.sh.tftpl", {})
+      runcmd_order = 30
     }
     "netbird-setup.sh" = {
-      content          = templatefile("${path.module}/templates/netbird-setup.sh.tftpl", {
+      content = templatefile("${path.module}/templates/netbird-setup.sh.tftpl", {
         enabled     = local.netbird.enabled
         extra_flags = join(" ", concat(local.netbird.setup_key != "" ? ["--setup-key", local.netbird.setup_key] : [], coalesce(local.netbird.extra_flags, []), local.netbird.management_url != "" ? ["--management-url", local.netbird.management_url] : []))
       })
-      runcmd_order   = 40
+      runcmd_order = 40
     }
     "pangolin-setup.sh" = {
-      content          = templatefile("${path.module}/templates/pangolin-setup.sh.tftpl", {
+      content = templatefile("${path.module}/templates/pangolin-setup.sh.tftpl", {
         enabled     = local.pangolin.enabled
         site_id     = local.pangolin.site_id
         site_secret = local.pangolin.site_secret
         endpoint    = local.pangolin.endpoint
       })
-      runcmd_order   = 50
+      runcmd_order = 50
     }
     "configure-cloudflared.sh" = {
-      content          = templatefile("${path.module}/templates/cloudflared-setup.sh.tftpl", {
+      content = templatefile("${path.module}/templates/cloudflared-setup.sh.tftpl", {
         enabled      = local.cloudflared.enabled
         tunnel_token = local.cloudflared.tunnel_token
       })
-      runcmd_order   = 60
-      name  = "cloudflared-setup.sh"
+      runcmd_order = 60
+      name         = "cloudflared-setup.sh"
     }
     "cloudflare-warp-setup.sh" = {
-      content          = templatefile("${path.module}/templates/cloudflare-warp-setup.sh.tftpl", {
+      content = templatefile("${path.module}/templates/cloudflare-warp-setup.sh.tftpl", {
         enabled      = local.warp.enabled
         tunnel_token = local.warp.tunnel_token
       })
-      runcmd_order   = 70
+      runcmd_order = 70
     }
     "docker-install.sh" = {
-      content          = templatefile("${path.module}/templates/docker-install.sh.tftpl", {
+      content = templatefile("${path.module}/templates/docker-install.sh.tftpl", {
         enabled = local.docker.enabled
         vm_user = local.vm.user
       })
-      runcmd_order   = 80
+      runcmd_order = 80
     }
   }
 
@@ -146,14 +146,14 @@ locals {
   ]
 
   cloud_init_rendered = templatefile("${path.module}/templates/cloud-config.yaml.tftpl", {
-    packages          = local.packages
-    cloud_init_files  = local.cloud_init_files
-    runcmd_files      = local.runcmd_files_sorted
-    theUsers          = [local.vm.user, "root"]
-    vm_timezone       = local.vm.timezone
-    vm_password_hash  = trimspace(coalesce(local.vm.password_hash, "")) != "" ? trimspace(local.vm.password_hash) : module.sha512_password[0].hash
+    packages               = local.packages
+    cloud_init_files       = local.cloud_init_files
+    runcmd_files           = local.runcmd_files_sorted
+    theUsers               = [local.vm.user, "root"]
+    vm_timezone            = local.vm.timezone
+    vm_password_hash       = try(trimspace(local.vm.password_hash), "") != "" ? trimspace(local.vm.password_hash) : module.sha512_password[0].hash
     vm_ssh_authorized_keys = local.ssh_public_keys_content
-    git               = local.git
+    git                    = local.git
   })
 
   vm_output_files = merge(
@@ -464,10 +464,10 @@ resource "oci_core_instance" "compute_instance" {
   }
 
   metadata = {
-    git_commit          = local.git.commit
-    git_remote          = local.git.remote_url
-    git_source          = local.git.source
-    git_dirty           = local.git.is_dirty
+    git_commit = local.git.commit
+    git_remote = local.git.remote_url
+    git_source = local.git.source
+    git_dirty  = local.git.is_dirty
   }
 
   agent_config {

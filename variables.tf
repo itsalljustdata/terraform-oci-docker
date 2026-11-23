@@ -68,8 +68,6 @@ variable "vm" {
   })
   description = "Logical grouping for the VM login, OS timezone, OCI image, shape, and flexible-shape sizing."
 
-  sensitive = true
-
   validation {
     condition = (
       can(regex("^VM\\.Standard\\.[A-Za-z0-9.]+$", coalesce(var.vm.shape, "VM.Standard.E2.1.Micro"))) &&
