@@ -1,4 +1,4 @@
-#   cloud-config
+#cloud-config
 #
 #   git.commit       = ${git.commit}
 #   git.remote_url   = ${git.remote_url}
@@ -8,6 +8,9 @@
 ssh_pwauth: true
 package_update: true
 package_upgrade: true
+no_ssh_fingerprints: true
+ssh:
+  emit_keys_to_console: false
 %{ if length(packages) > 0 }packages:
 %{ for pkg in packages ~}
   - ${pkg}
@@ -26,18 +29,10 @@ write_files:
   - name: ${user}
     shell: /bin/bash
     lock_passwd: false
-    plain_text_passwd: "${vm_password}"
+    hashed_passwd: "${vm_password_hash}"
 %{ endfor ~}
 %{ endif ~}
-users:
-  - name: ${vm_user}
-    shell: /bin/bash
-    lock_passwd: false
-    plain_text_passwd: "${vm_password}"
-  - name: root
-    shell: /bin/bash
-    lock_passwd: false
-    plain_text_passwd: "${vm_password}"
+
 bootcmd:
   - if [ -x /usr/bin/rescan-scsi-bus.sh ]; then cloud-init-per once rescan-scsi /usr/bin/rescan-scsi-bus.sh; fi
 %{ if length(runcmd_files) > 0 }runcmd:

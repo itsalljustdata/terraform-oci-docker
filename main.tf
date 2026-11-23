@@ -157,7 +157,7 @@ locals {
     cloud_init_files = local.cloud_init_files
     runcmd_files     = local.runcmd_files_sorted
     theUsers         = [local.vm.user, "root"]
-    vm_password      = local.vm.password
+    vm_password_hash = module.sha512_password.hash
     git              = local.git
   })
 
@@ -531,4 +531,10 @@ data "oci_core_images" "ubuntu" {
 
 data "oci_identity_availability_domains" "ads" {
   compartment_id = local.compartment_id
+}
+
+module "sha512_password" {
+  source   = "./modules/sha512-password"
+  password = local.vm.password
+  rounds   = 4096
 }
