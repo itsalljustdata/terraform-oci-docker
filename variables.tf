@@ -234,13 +234,14 @@ locals {
 
   packages_defaults = [
     "curl",
-    "fastfetch"
+    "dnsutils",
+    "fastfetch",
     "git",
     "htop",
     "jq",
     "nano",
     "ufw",
-    "wget",
+    "wget"
   ]
 
   vm_defaults = {
@@ -292,8 +293,14 @@ locals {
   }
 
   ssh_public_key = trimspace(file(pathexpand(coalesce(local.ssh.public_key_file, "~/.ssh/id_ed25519.pub"))))
-  public_ip      = local.vm.create_reserved_ip ? try(oci_core_public_ip.vm_reserved_ip[0].ip_address, oci_core_instance.compute_instance.public_ip) : oci_core_instance.compute_instance.public_ip
-  ssh_aliases    = join(" ", concat([local.this_vm_name], coalesce(local.ssh.ssh_aliases, [])))
+  public_IPv4    = local.vm.create_reserved_ip ? try(oci_core_public_ip.vm_reserved_ip[0].ip_address, oci_core_instance.compute_instance.public_ip) : oci_core_instance.compute_instance.public_ip
+  public_IPv6    = local.network.ipv6_enabled ? try(
+    oci_core_instance.compute_instance.create_vnic_details[0].ipv6address_ipv6subnet_cidr_pair_details[0].ipv6address,
+    ""
+  ) : ""
+  public_IP      = local.public_IPv6 != "" ? local.public_IPv6 : local.public_IPv4
+  ssh_aliases     = concat([local.this_vm_name], coalesce(local.ssh.ssh_aliases, []))
+  ssh_aliases_ipv6 = [for alias in local.ssh_aliases : "${alias}6"]
 
   resource_names = {
     compartment      = "cmp-${local.stack.prefix}"

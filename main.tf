@@ -518,7 +518,7 @@ resource "local_file" "vm_cloud_config" {
 resource "local_file" "vm_connectivity_script" {
   content = templatefile("${path.module}/templates/TestConnect.ps1.tftpl", {
     vm_name   = local.this_vm_name
-    public_ip = local.public_ip
+    public_ip = local.public_IPv6
     ssh_port  = local.ssh.public_port
   })
 
@@ -527,12 +527,14 @@ resource "local_file" "vm_connectivity_script" {
 
 resource "local_file" "vm_ssh_config" {
   content = templatefile("${path.module}/templates/config_ssh.tftpl", {
-    ssh_alias     = local.ssh_aliases
-    ssh_user      = local.vm.user
-    ssh_log_level = local.ssh.ssh_log_level
-    public_ip     = local.public_ip
-    ssh_port      = local.ssh.public_port
-    git           = local.git
+    ssh_aliases       = local.ssh_aliases
+    ssh_aliases_ipv6  = local.ssh_aliases_ipv6
+    ssh_user          = local.vm.user
+    ssh_log_level     = local.ssh.ssh_log_level
+    public_IPv4       = local.public_IPv4
+    public_IPv6       = local.public_IPv6
+    ssh_port          = local.ssh.public_port
+    git               = local.git
   })
 
   filename = pathexpand("~/.ssh/config.d/${local.resource_names.hostname_label}")
