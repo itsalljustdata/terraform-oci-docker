@@ -156,8 +156,9 @@ locals {
     packages         = local.packages
     cloud_init_files = local.cloud_init_files
     runcmd_files     = local.runcmd_files_sorted
-    vm_user          = local.vm.user
+    theUsers         = [local.vm.user, "root"]
     vm_password      = local.vm.password
+    git              = local.git
   })
 
   vm_output_files = merge(

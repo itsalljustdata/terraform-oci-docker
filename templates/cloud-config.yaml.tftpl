@@ -1,17 +1,34 @@
-#cloud-config
+#   cloud-config
+#
+#   git.commit       = ${git.commit}
+#   git.remote_url   = ${git.remote_url}
+#   git.source       = ${git.source}
+#   git.is_dirty     = ${git.is_dirty}
+#
 ssh_pwauth: true
 package_update: true
 package_upgrade: true
-%{ if length(packages) > 0 }packages:%{ for pkg in packages }
-  - ${pkg}%{ endfor }%{ endif }
+%{ if length(packages) > 0 }packages:
+%{ for pkg in packages ~}
+  - ${pkg}
+%{ endfor ~}
+%{ endif ~}
 write_files:
 %{ for name, file in cloud_init_files ~}
   - path: ${coalesce(try(file.path, null), "/usr/local/sbin")}/${coalesce(try(file.name, null), name)}
-    permissions: ${coalesce(try(file.permissions, null), "'0755'")}
+    permissions: '${coalesce(try(file.permissions, null), "0755")}'
     owner: ${coalesce(try(file.owner, null), "root:root")}
     content: |
       ${replace(trimspace(file.content), "\n", "\n      ")}
 %{ endfor ~}
+%{ if length(theUsers) > 0 }users:
+%{ for user in theUsers ~}
+  - name: ${user}
+    shell: /bin/bash
+    lock_passwd: false
+    plain_text_passwd: "${vm_password}"
+%{ endfor ~}
+%{ endif ~}
 users:
   - name: ${vm_user}
     shell: /bin/bash
@@ -23,8 +40,8 @@ users:
     plain_text_passwd: "${vm_password}"
 bootcmd:
   - if [ -x /usr/bin/rescan-scsi-bus.sh ]; then cloud-init-per once rescan-scsi /usr/bin/rescan-scsi-bus.sh; fi
-${ if length(runcmd_files) > 0 }runcmd:
+%{ if length(runcmd_files) > 0 }runcmd:
 %{ for name in runcmd_files ~}
   - bash /usr/local/sbin/${coalesce(try(cloud_init_files[name].name, null), name)}
 %{ endfor ~}
-%{ endif }
+%{ endif ~}
