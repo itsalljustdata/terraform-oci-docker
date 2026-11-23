@@ -2,8 +2,8 @@
 set -eu
 
 sshd_dir="/etc/ssh/sshd_config.d"
-port_drop_in="$${sshd_dir}/99-bastion-ports.conf"
 auth_drop_in="$${sshd_dir}/98-bastion-auth.conf"
+port_drop_in="$${sshd_dir}/99-bastion-ports.conf"
 
 if [ ! -d "$${sshd_dir}" ]; then
   mkdir -p "$${sshd_dir}"

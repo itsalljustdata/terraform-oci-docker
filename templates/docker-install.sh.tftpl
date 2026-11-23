@@ -113,7 +113,7 @@ if [ -d "$${gitDir}" ]; then
     echo "INFO: git directory exists at $${gitDir}"
 else
     mkdir -p "$${gitDir}"
-    chown -R "${vm_user}:${vm_user}" "$${gitDir}"
+    chown -R 1000:1000 "$${gitDir}"
     chmod 775 "$${gitDir}"
     echo "INFO: git directory created at $${gitDir}"
 fi

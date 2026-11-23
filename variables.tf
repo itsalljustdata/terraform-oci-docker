@@ -55,7 +55,6 @@ variable "ssh" {
 variable "vm" {
   type = object({
     user         = optional(string)
-    user_rename  = optional(string)
     password     = optional(string)
     timezone     = optional(string)
     image_ocid   = optional(string)
@@ -249,7 +248,6 @@ locals {
 
   vm_defaults = {
     user        = "ubuntu"
-    user_rename = ""
     password   = "YourSecurePasswordHere"
     timezone   = "Australia/Sydney"
     image_ocid = ""

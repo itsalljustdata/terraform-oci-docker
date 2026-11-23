@@ -68,7 +68,7 @@ locals {
   cloud_init_configure_ssh = templatefile("${path.module}/templates/configure-ssh.sh.tftpl", {
     ssh_public_port = local.ssh.public_port
     ssh_public_key  = local.ssh_public_key
-    vm_user         = local.vm.user_rename != "" ? local.vm.user_rename : local.vm.user
+    vm_user         = local.vm.user
   })
 
   cloud_init_configure_firewall = templatefile("${path.module}/templates/configure-firewall.sh.tftpl", {
@@ -105,11 +105,6 @@ locals {
     endpoint    = local.pangolin.endpoint
   })
   
-  cloud_init_user_rename = templatefile("${path.module}/templates/user-rename.sh.tftpl", {
-    vm_user        = local.vm.user
-    vm_user_rename = local.vm.user_rename
-    git            = local.git
-  })
 
   cloud_init_rendered = templatefile("${path.module}/templates/cloud-config.yaml.tftpl", {
     packages = local.packages
@@ -124,7 +119,6 @@ locals {
     configure_docker_content      = local.cloud_init_install_docker
     configure_netbird_content     = local.cloud_init_netbird_setup
     configure_pangolin_content    = local.cloud_init_pangolin_setup
-    configure_user_rename_content = local.cloud_init_user_rename
 
     vm_user     = local.vm.user
     vm_password = local.vm.password
@@ -530,13 +524,6 @@ resource "local_file" "vm_pangolin_setup_script" {
 
   content         = local.cloud_init_pangolin_setup
   filename        = "${path.module}/output/${local.this_vm_name}/pangolin-setup.sh"
-  file_permission = "0755"
-}
-resource "local_file" "vm_user_rename_script" {
-  count = local.vm_tmp.user_rename != "" ? 1 : 0
-
-  content         = local.cloud_init_user_rename
-  filename        = "${path.module}/output/${local.this_vm_name}/user-rename.sh"
   file_permission = "0755"
 }
 
