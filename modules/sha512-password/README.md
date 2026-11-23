@@ -8,6 +8,8 @@ Prerequisites:
 python -m pip install passlib
 ```
 
+The password remains sensitive Terraform input, while only the generated SHA-512 crypt hash is written to cloud-config.
+
 Usage:
 
 ```terraform
