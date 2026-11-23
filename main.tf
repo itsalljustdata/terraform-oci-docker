@@ -44,6 +44,22 @@ resource "oci_identity_compartment" "stack_compartment" {
 }
 
 locals {
+  vm_ssh_config_rendered = templatefile("${path.module}/templates/config_ssh.tftpl", {
+    ssh_aliases      = local.ssh_aliases
+    ssh_aliases_ipv6 = local.ssh_aliases_ipv6
+    ssh_user         = local.vm.user
+    ssh_log_level    = local.ssh.ssh_log_level
+    public_IPv4      = local.public_IPv4
+    public_IPv6      = local.public_IPv6
+    ssh_port         = local.ssh.public_port
+    git              = local.git
+  })
+
+  vm_ssh_config_destinations = {
+    user_config = pathexpand("~/.ssh/config.d/${local.resource_names.hostname_label}")
+    output_file = "${path.module}/output/${local.this_vm_name}/ssh-config"
+  }
+
   cloud_init_mount_block_volumes = templatefile("${path.module}/templates/mount-block-volumes.sh.tftpl", {
     mount_entries = local.storage.block_vol_mounts
     vm_name       = local.this_vm_name
