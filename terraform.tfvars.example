@@ -1,6 +1,8 @@
 # Copy this file to terraform.tfvars and replace the example values with your real OCI values.
 # Keep this file out of source control if it contains real secrets or credentials.
 
+packages = ["zsh"]
+
 oci = {
   tenancy_ocid     = "ocid1.tenancy.oc1..exampletenancy"
   compartment_ocid = "ocid1.compartment.oc1..examplecompartment"
@@ -21,6 +23,7 @@ stack = {
 network = {
   vcn_cidr_blocks   = ["10.0.0.0/16"]
   subnet_cidr_block = "10.0.70.0/24"
+  ipv6_enabled      = true
 }
 
 ssh = {
@@ -29,13 +32,16 @@ ssh = {
   public_key_files  = ["~/.ssh/id_ed25519.pub"]
   public_port       = 1755
   ssh_allowed_ipv4_cidrs = ["203.0.113.10/32"]
+  ssh_allowed_ipv6_cidrs = ["2001:db8::/48"]
   ssh_log_level     = "INFO"
   ssh_aliases       = ["proxmox-oci", "proxmoxOCI"]
 }
 
 vm = {
   user               = "root"
+  # Set exactly one of password or password_hash.
   password           = "ChangeMeStrongPassword123!"
+  # password_hash = "$6$rounds=4096$..."
   timezone           = "Australia/Perth"
   image_ocid         = "ocid1.image.oc1.ap-sydney-1...example"
   shape              = "VM.Standard.A1.Flex"
@@ -79,4 +85,11 @@ cloudflared = {
 warp = {
   enabled      = false
   tunnel_token = ""
+}
+
+pangolin = {
+  enabled     = false
+  site_id     = ""
+  site_secret = ""
+  endpoint    = "https://app.pangolin.net"
 }

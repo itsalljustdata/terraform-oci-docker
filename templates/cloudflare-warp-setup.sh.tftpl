@@ -13,5 +13,5 @@ sysctl --system
 warp-cli connector new ${tunnel_token}
 warp-cli connect
 %{ else ~}
-    echo "INFO: cloudflare-warp.enabled = false"
+echo "INFO: cloudflare-warp.enabled = false"
 %{ endif ~}

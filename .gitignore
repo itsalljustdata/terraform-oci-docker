@@ -59,3 +59,4 @@ console-history-*.log
 output/*
 !output/.gitkeep
 schema.json
+outputs.json

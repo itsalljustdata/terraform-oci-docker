@@ -16,5 +16,5 @@ systemctl enable --now netbird || true
 netbird up ${extra_flags}
 netbird status
 %{ else }
-    echo "INFO: netbird.enabled = false"
+echo "INFO: netbird.enabled = false"
 %{ endif }

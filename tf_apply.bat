@@ -1,15 +1,13 @@
 @echo off
+setlocal
 cd /d "%~dp0"
-if "%1"=="" (
-  set "theCommand=apply"
-  set "theArgs=-auto-approve -compact-warnings"
-  rem  -replace=oci_core_instance.compute_instance"
-) else if "%1"=="destroy" (
-  set "theCommand=apply -destroy"
-  set "theArgs=-auto-approve"
+
+where pwsh.exe >nul 2>&1
+if not errorlevel 1 (
+  set "PowerShellHost=pwsh.exe"
 ) else (
-  set "theCommand=%1"
-  shift
-  set "theArgs=%*"
+  set "PowerShellHost=powershell.exe"
 )
-terraform %theCommand%  %theArgs%
+
+"%PowerShellHost%" -NoProfile -ExecutionPolicy Bypass -File ".\tf_apply.ps1" %*
+exit /b %ERRORLEVEL%
