@@ -61,13 +61,6 @@ locals {
   }
 
   cloud_init_files = {
-#    "99-default-user.cfg" = {
-#      path             = "/etc/cloud/cloud.cfg.d"
-#      permissions      = "0644"
-#      content          = templatefile("${path.module}/templates/99-default-user.cfg.tftpl", {
-#        vm_user         = local.vm.user
-#      })  
-#    }
     "mount-block-volumes.sh" = {
       content          = templatefile("${path.module}/templates/mount-block-volumes.sh.tftpl", {
         mount_entries = local.storage.block_vol_mounts
@@ -471,7 +464,6 @@ resource "oci_core_instance" "compute_instance" {
   }
 
   metadata = {
-    ssh_authorized_keys = join("\n", local.ssh_public_keys_content)
     git_commit          = local.git.commit
     git_remote          = local.git.remote_url
     git_source          = local.git.source
@@ -488,7 +480,18 @@ resource "oci_core_instance" "compute_instance" {
       name          = "Block Volume Management"
       desired_state = "ENABLED"
     }
-
+    plugins_config {
+      name          = "Custom Logs Monitoring"
+      desired_state = "ENABLED"
+    }
+    plugins_config {
+      name          = "OS Management Hub"
+      desired_state = "ENABLED"
+    }
+    plugins_config {
+      name          = "Management Agent"
+      desired_state = "ENABLED"
+    }
     plugins_config {
       name          = "Vulnerability Scanning"
       desired_state = "ENABLED"

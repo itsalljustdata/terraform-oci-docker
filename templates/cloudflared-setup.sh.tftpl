@@ -1,14 +1,7 @@
 #!/bin/bash
 set -eu
 
-if [ "${enabled}" == "true" ]; then
-    echo "INFO: cloudflared.enabled = true"
-else
-    echo "INFO: cloudflared.enabled = false"
-    exit 0
-fi
-
-%{ if enabled }
+%{ if enabled ~}
 if [ -f /etc/os-release ]; then 
     . /etc/os-release
 fi
@@ -46,4 +39,6 @@ cloudflared service install "${tunnel_token}"
 echo "------------------------------------------------------"
 echo "Script Completed"
 echo "------------------------------------------------------"
-%{ endif }
+%{ else ~}
+    echo "INFO: cloudflared.enabled = false"
+%{ endif ~}

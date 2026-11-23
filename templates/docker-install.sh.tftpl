@@ -1,13 +1,7 @@
 #!/bin/bash
 set -eu
 
-if [ "${enabled}" == "true" ]; then
-    :
-else
-    echo "INFO: docker.enabled = false"
-    exit 0
-fi
-
+%{ if enabled == "true" ~}
 echo "------------------------------------------------------------"
 echo "Docker install"
 echo "------------------------------------------------------------"
@@ -122,3 +116,6 @@ else
 fi
 
 docker --version
+%{ else ~}
+    echo "INFO: docker.enabled = false"
+%{ endif ~}

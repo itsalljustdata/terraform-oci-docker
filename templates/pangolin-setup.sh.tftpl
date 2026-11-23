@@ -1,14 +1,7 @@
 #!/bin/bash
 set -eu
 
-if [ "${enabled}" == "true" ]; then
-    :
-else
-    echo "INFO: pangolin.enabled = false"
-    exit 0
-fi
-
-%{ if enabled == "true" }
+%{ if enabled == "true" ~}
 curl -fsSL https://static.pangolin.net/get-cli.sh | bash
 
 # Create the directory and environment file
@@ -44,4 +37,6 @@ EOF_SVC
 
 systemctl daemon-reload
 systemctl enable --now pangolin-site
-%{ endif }
+%{ else ~}
+    echo "INFO: pangolin.enabled = false"
+%{ endif ~}

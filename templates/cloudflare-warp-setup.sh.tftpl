@@ -1,14 +1,7 @@
 #!/bin/bash
 set -eu
 
-if [ "${enabled}" == "true" ]; then
-    :
-else
-    echo "INFO: warp.enabled = false"
-    exit 0
-fi
-
-%{if enabled }
+%{if enabled ~}
 # Oracle Linux does not provide subscription-manager, so skip RHSM-only repo setup
 # and install the EPEL repo directly instead.
 apt install -y "https://dl.fedoraproject.org/pub/epel/epel-release-latest-$(rpm -E %rhel).noarch.rpm"
@@ -19,4 +12,6 @@ sysctl --system
 
 warp-cli connector new ${tunnel_token}
 warp-cli connect
-%{endif}
+%{ else ~}
+    echo "INFO: cloudflare-warp.enabled = false"
+%{ endif ~}
