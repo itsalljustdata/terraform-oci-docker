@@ -8,11 +8,11 @@ terraform {
     }
     external = {
       source  = "hashicorp/external"
-      version = "~> 2.4.2"
+      version = ">= 2.4.2"
     }
     local = {
       source  = "hashicorp/local"
-      version = "~> 2.9.1"
+      version = ">= 2.9.1"
     }
   }
 }
