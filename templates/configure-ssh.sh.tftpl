@@ -17,10 +17,10 @@ cat > "$${port_drop_in}" <<'PORT_EOF'
 Port 22
 PORT_EOF
 
-if [ "${ssh_public_port}" != "22" ]; then
-  printf 'Port %s\n' "${ssh_public_port}" >> "$${port_drop_in}"
-  semanage port -a -t ssh_port_t -p tcp "${ssh_public_port}" || true
-fi
+%{ if ssh_public_port != "22" }
+printf 'Port %s\n' "${ssh_public_port}" >> "$${port_drop_in}"
+semanage port -a -t ssh_port_t -p tcp "${ssh_public_port}" || true
+%{ endif }  
 
 theFile="/etc/ssh/authorized_keys"
 

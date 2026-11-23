@@ -3,11 +3,3 @@ set -eu
 
 /usr/local/sbin/mount-block-volumes.sh
 exit $?
-# for i in $(seq 1 30); do
-#   if /usr/local/sbin/mount-block-volumes.sh; then
-#     break
-#   fi
-#   sleep 5
-# done
-
-# exit 0

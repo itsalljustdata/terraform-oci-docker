@@ -8,6 +8,7 @@ else
     exit 0
 fi
 
+%{ if enabled }
 if [ -f /etc/os-release ]; then 
     . /etc/os-release
 fi
@@ -45,3 +46,4 @@ cloudflared service install "${tunnel_token}"
 echo "------------------------------------------------------"
 echo "Script Completed"
 echo "------------------------------------------------------"
+%{ endif }

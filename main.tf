@@ -60,110 +60,147 @@ locals {
     output_file = "${path.module}/output/${local.this_vm_name}/ssh-config"
   }
 
-  cloud_init_mount_block_volumes = templatefile("${path.module}/templates/mount-block-volumes.sh.tftpl", {
-    mount_entries = local.storage.block_vol_mounts
-    vm_name       = local.this_vm_name
-  })
+  cloud_init_files = {
+#    "99-default-user.cfg" = {
+#      path             = "/etc/cloud/cloud.cfg.d"
+#      permissions      = "0644"
+#      content          = templatefile("${path.module}/templates/99-default-user.cfg.tftpl", {
+#        vm_user         = local.vm.user
+#      })  
+#    }
+    "mount-block-volumes.sh" = {
+      content          = templatefile("${path.module}/templates/mount-block-volumes.sh.tftpl", {
+        mount_entries = local.storage.block_vol_mounts
+        vm_name       = local.this_vm_name
+      })
+    }
+    "configure-ssh.sh" = {
+      content          = templatefile("${path.module}/templates/configure-ssh.sh.tftpl", {
+        ssh_public_port = local.ssh.public_port
+        ssh_public_key  = local.ssh_public_key
+        vm_user         = local.vm.user
+      })
+      runcmd_order   = 10
+    }
+    "configure-firewall.sh" = {
+      content          = templatefile("${path.module}/templates/configure-firewall.sh.tftpl", {
+        ssh_public_port = local.ssh.public_port
+      })
+      runcmd_order   = 20
+    }
+    "wait-for-block-volume.sh" = {
+      content          = templatefile("${path.module}/templates/wait-for-block-volume.sh.tftpl", {})
+      name  = "wait-for-block-volume.sh"
+    }
+    "block-volume-mount.service" = {
+      path             = "/etc/systemd/system"
+      permissions      = "0644"
+      content          = templatefile("${path.module}/templates/block-volume-mount.service.tftpl", {})
+    }
+    "enable-block-volume-service.sh" = {
+      content          = templatefile("${path.module}/templates/enable-block-volume-service.sh.tftpl", {})
+      runcmd_order   = 30
+    }
+    "netbird-setup.sh" = {
+      content          = templatefile("${path.module}/templates/netbird-setup.sh.tftpl", {
+        enabled     = local.netbird.enabled
+        extra_flags = join(" ", concat(local.netbird.setup_key != "" ? ["--setup-key", local.netbird.setup_key] : [], coalesce(local.netbird.extra_flags, []), local.netbird.management_url != "" ? ["--management-url", local.netbird.management_url] : []))
+      })
+      runcmd_order   = 40
+    }
+    "pangolin-setup.sh" = {
+      content          = templatefile("${path.module}/templates/pangolin-setup.sh.tftpl", {
+        enabled     = local.pangolin.enabled
+        site_id     = local.pangolin.site_id
+        site_secret = local.pangolin.site_secret
+        endpoint    = local.pangolin.endpoint
+      })
+      runcmd_order   = 50
+    }
+    "configure-cloudflared.sh" = {
+      content          = templatefile("${path.module}/templates/cloudflared-setup.sh.tftpl", {
+        enabled      = local.cloudflared.enabled
+        tunnel_token = local.cloudflared.tunnel_token
+      })
+      runcmd_order   = 60
+      name  = "cloudflared-setup.sh"
+    }
+    "cloudflare-warp-setup.sh" = {
+      content          = templatefile("${path.module}/templates/cloudflare-warp-setup.sh.tftpl", {
+        enabled      = local.warp.enabled
+        tunnel_token = local.warp.tunnel_token
+      })
+      runcmd_order   = 70
+    }
+    "docker-install.sh" = {
+      content          = templatefile("${path.module}/templates/docker-install.sh.tftpl", {
+        enabled = local.docker.enabled
+        vm_user = local.vm.user
+      })
+      runcmd_order   = 80
+    }
+  }
 
-  cloud_init_configure_ssh = templatefile("${path.module}/templates/configure-ssh.sh.tftpl", {
-    ssh_public_port = local.ssh.public_port
-    ssh_public_key  = local.ssh_public_key
-    vm_user         = local.vm.user
-  })
+  runcmd_files = sort([
+    for name, file in local.cloud_init_files :
+    format("%010d:%s", file.runcmd_order, name)
+    if try(file.runcmd_order, null) != null
+  ])
 
-  cloud_init_configure_firewall = templatefile("${path.module}/templates/configure-firewall.sh.tftpl", {
-    ssh_public_port = local.ssh.public_port
-  })
-
-  cloud_init_configure_cloudflared = templatefile("${path.module}/templates/cloudflared-setup.sh.tftpl", {
-    enabled      = local.cloudflared.enabled
-    tunnel_token = local.cloudflared.tunnel_token
-  })
-  cloud_init_configure_warp = templatefile("${path.module}/templates/cloudflare-warp-setup.sh.tftpl", {
-    enabled      = local.warp.enabled
-    tunnel_token = local.warp.tunnel_token
-  })
-
-  cloud_init_install_docker = templatefile("${path.module}/templates/docker-install.sh.tftpl", {
-    enabled = local.docker.enabled
-    vm_user = local.vm.user
-  })
-
-  cloud_init_wait_for_block_volume = templatefile("${path.module}/templates/wait-for-block-volume.sh.tftpl", {})
-
-  cloud_init_bastion_mount_service = templatefile("${path.module}/templates/bastion-mount.service.tftpl", {})
-
-  cloud_init_netbird_setup = templatefile("${path.module}/templates/netbird-setup.sh.tftpl", {
-    enabled     = local.netbird.enabled
-    extra_flags = join(" ", concat(local.netbird.setup_key != "" ? ["--setup-key", local.netbird.setup_key] : [], coalesce(local.netbird.extra_flags, []), local.netbird.management_url != "" ? ["--management-url", local.netbird.management_url] : []))
-  })
-
-  cloud_init_pangolin_setup = templatefile("${path.module}/templates/pangolin-setup.sh.tftpl", {
-    enabled     = local.pangolin.enabled
-    site_id     = local.pangolin.site_id
-    site_secret = local.pangolin.site_secret
-    endpoint    = local.pangolin.endpoint
-  })
-  
+  runcmd_files_sorted = [
+    for item in local.runcmd_files :
+    split(":", item)[1]
+  ]
 
   cloud_init_rendered = templatefile("${path.module}/templates/cloud-config.yaml.tftpl", {
-    packages = local.packages
-
-    mount_block_volumes_content   = local.cloud_init_mount_block_volumes
-    configure_ssh_content         = local.cloud_init_configure_ssh
-    configure_firewall_content    = local.cloud_init_configure_firewall
-    wait_for_block_volume_content = local.cloud_init_wait_for_block_volume
-    bastion_mount_service_content = local.cloud_init_bastion_mount_service
-    configure_cloudflared_content = local.cloud_init_configure_cloudflared
-    configure_warp_content        = local.cloud_init_configure_warp
-    configure_docker_content      = local.cloud_init_install_docker
-    configure_netbird_content     = local.cloud_init_netbird_setup
-    configure_pangolin_content    = local.cloud_init_pangolin_setup
-
-    vm_user     = local.vm.user
-    vm_password = local.vm.password
-
+    packages         = local.packages
+    cloud_init_files = local.cloud_init_files
+    runcmd_files     = local.runcmd_files_sorted
+    vm_user          = local.vm.user
+    vm_password      = local.vm.password
   })
-}
 
-data "external" "cloud_config_yaml_valid" {
-  program = [
-    "python",
-    "-c",
-    <<PY
-import json
-import sys
-
-try:
-    import yaml
-except Exception as exc:  # pragma: no cover
-    print(json.dumps({"ok": False, "error": f"PyYAML not available: {exc}"}), file=sys.stderr)
-    raise SystemExit(1)
-
-try:
-    payload = json.loads(sys.stdin.read())
-except Exception as exc:
-    print(json.dumps({"ok": False, "error": f"invalid input: {exc}"}), file=sys.stderr)
-    raise SystemExit(1)
-
-text = payload.get("yaml")
-if not isinstance(text, str):
-    print(json.dumps({"ok": False, "error": "yaml input missing or not a string"}), file=sys.stderr)
-    raise SystemExit(1)
-
-try:
-    yaml.safe_load(text)
-except Exception as exc:
-    print(json.dumps({"ok": False, "error": f"invalid yaml: {exc}"}), file=sys.stderr)
-    raise SystemExit(1)
-
-print(json.dumps({"ok": "true"}))
-PY
-  ]
+  vm_output_files = merge(
+    {
+      for name, file in local.cloud_init_files :
+      name => {
+        content         = file.content
+        filename        = "${path.module}/output/${local.this_vm_name}/${coalesce(try(file.name, null), name)}"
+        file_permission = coalesce(try(file.permissions, null), "0755")
+      }
+    },
+    {
+      "cloud-config.yaml" = {
+        content         = local.cloud_init_rendered
+        filename        = "${path.module}/output/${local.this_vm_name}/cloud-config.yaml"
+        file_permission = "0644"
+      }
+      "TestConnect.ps1" = {
+        content = templatefile("${path.module}/templates/TestConnect.ps1.tftpl", {
+          vm_name  = local.this_vm_name
+          publicIP = [local.public_IPv4, local.public_IPv6]
+          ssh_port = local.ssh.public_port
+        })
+        filename        = "${path.module}/output/${local.this_vm_name}/TestConnect.ps1"
+        file_permission = "0644"
+      }
+    },
+    {
+      for destination_name, destination_filename in local.vm_ssh_config_destinations :
+      "ssh-config-${destination_name}" => {
+        content         = local.vm_ssh_config_rendered
+        filename        = destination_filename
+        file_permission = "0644"
+      }
+    }
+  )
 
   query = {
     yaml = local.cloud_init_rendered
   }
+
+
+
 }
 
 ## ==========================================
@@ -464,98 +501,12 @@ resource "oci_core_instance" "compute_instance" {
   }
 }
 
-resource "local_file" "vm_mount_block_volumes_script" {
-  content         = local.cloud_init_mount_block_volumes
-  filename        = "${path.module}/output/${local.this_vm_name}/mount-block-volumes.sh"
-  file_permission = "0755"
-}
+resource "local_file" "vm_output_files" {
+  for_each = local.vm_output_files
 
-resource "local_file" "vm_configure_ssh_script" {
-  content         = local.cloud_init_configure_ssh
-  filename        = "${path.module}/output/${local.this_vm_name}/configure-ssh.sh"
-  file_permission = "0755"
-}
-
-resource "local_file" "vm_configure_firewall_script" {
-  content         = local.cloud_init_configure_firewall
-  filename        = "${path.module}/output/${local.this_vm_name}/configure-firewall.sh"
-  file_permission = "0755"
-}
-
-resource "local_file" "vm_wait_for_block_volume_script" {
-  content         = local.cloud_init_wait_for_block_volume
-  filename        = "${path.module}/output/${local.this_vm_name}/wait-for-block-volume.sh"
-  file_permission = "0755"
-}
-
-resource "local_file" "vm_bastion_mount_service" {
-  content         = local.cloud_init_bastion_mount_service
-  filename        = "${path.module}/output/${local.this_vm_name}/bastion-mount.service"
-  file_permission = "0644"
-}
-
-resource "local_file" "vm_cloudflared_setup_script" {
-  content         = local.cloud_init_configure_cloudflared
-  filename        = "${path.module}/output/${local.this_vm_name}/cloudflared-setup.sh"
-  file_permission = "0755"
-}
-resource "local_file" "vm_warp_setup_script" {
-  content         = local.cloud_init_configure_warp
-  filename        = "${path.module}/output/${local.this_vm_name}/cloudflare-warp-setup.sh"
-  file_permission = "0755"
-}
-
-resource "local_file" "vm_docker_install_script" {
-  content         = local.cloud_init_install_docker
-  filename        = "${path.module}/output/${local.this_vm_name}/docker-install.sh"
-  file_permission = "0755"
-}
-
-resource "local_file" "vm_netbird_setup_script" {
-  count = local.netbird.enabled ? 1 : 0
-
-  content         = local.cloud_init_netbird_setup
-  filename        = "${path.module}/output/${local.this_vm_name}/netbird-setup.sh"
-  file_permission = "0755"
-}
-
-resource "local_file" "vm_pangolin_setup_script" {
-  count = local.pangolin.enabled ? 1 : 0
-
-  content         = local.cloud_init_pangolin_setup
-  filename        = "${path.module}/output/${local.this_vm_name}/pangolin-setup.sh"
-  file_permission = "0755"
-}
-
-resource "local_file" "vm_cloud_config" {
-  content  = local.cloud_init_rendered
-  filename = "${path.module}/output/${local.this_vm_name}/cloud-config.yaml"
-}
-
-resource "local_file" "vm_connectivity_script" {
-  content = templatefile("${path.module}/templates/TestConnect.ps1.tftpl", {
-    vm_name   = local.this_vm_name
-    public_ip = local.public_IPv6
-    ssh_port  = local.ssh.public_port
-  })
-
-  filename = "${path.module}/output/${local.this_vm_name}/TestConnect.ps1"
-}
-
-resource "local_file" "vm_ssh_config" {
-  for_each = local.vm_ssh_config_destinations
-
-  content         = local.vm_ssh_config_rendered
-  filename        = each.value
-  file_permission = "0644"
-}
-
-## ==========================================
-## 5. CONFIGURATION HOOK DATA LOOKUPS
-## ==========================================
-
-data "oci_identity_availability_domains" "ads" {
-  compartment_id = local.compartment_id
+  content         = each.value.content
+  filename        = each.value.filename
+  file_permission = each.value.file_permission
 }
 
 data "oci_core_images" "oracle_linux" {
@@ -575,4 +526,8 @@ data "oci_core_images" "ubuntu" {
   shape                    = local.vm_tmp.shape
   sort_by                  = "TIMECREATED"
   sort_order               = "DESC"
+}
+
+data "oci_identity_availability_domains" "ads" {
+  compartment_id = local.compartment_id
 }
