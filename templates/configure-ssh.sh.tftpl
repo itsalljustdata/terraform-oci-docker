@@ -37,7 +37,9 @@ printf '%s %s\n' "$${authKeysVal}" "$${theFile}" >> "$${auth_drop_in}"
 
 if [ ! -f "$${theFile}" ]; then
   touch "$${theFile}"
-  printf '%s\n' "${ssh_public_key}" > "$${theFile}"
+  %{ for public_key in ssh_public_keys ~}
+    printf '%s\n' "${public_key}" >> "$${theFile}"
+  %{ endfor ~}
 fi
 
 sudoersFile="/etc/sudoers.d/080-cloud-init-users"

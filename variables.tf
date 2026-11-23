@@ -37,7 +37,7 @@ variable "network" {
 
 variable "ssh" {
   type = object({
-    public_key_file        = optional(string)
+    public_key_files       = optional(list(string))
     public_port            = optional(number)
     ssh_allowed_ipv4_cidrs = optional(list(string))
     ssh_allowed_ipv6_cidrs = optional(list(string))
@@ -195,7 +195,7 @@ locals {
   }
 
   ssh_defaults = {
-    public_key_file        = "~/.ssh/id_ed25519.pub"
+    public_key_files       = ["~/.ssh/id_ed25519.pub"]
     public_port            = 22
     ssh_allowed_ipv4_cidrs = ["0.0.0.0/0"]
     ssh_allowed_ipv6_cidrs = ["::/0"]
@@ -294,7 +294,11 @@ locals {
     public_name   = "${local.stack.prefix}.${local.stack.domain_suffix}"
   }
 
-  ssh_public_key = trimspace(file(pathexpand(coalesce(local.ssh.public_key_file, "~/.ssh/id_ed25519.pub"))))
+  ssh_public_keys_content = [
+    for public_key_file in local.ssh.public_key_files :
+    trimspace(file(pathexpand(public_key_file)))
+  ]
+
   public_IPv4    = local.vm.create_reserved_ip ? try(oci_core_public_ip.vm_reserved_ip[0].ip_address, oci_core_instance.compute_instance.public_ip) : oci_core_instance.compute_instance.public_ip
   public_IPv6    = local.network.ipv6_enabled ? try(
     oci_core_instance.compute_instance.create_vnic_details[0].ipv6address_ipv6subnet_cidr_pair_details[0].ipv6address,

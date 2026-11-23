@@ -5,6 +5,7 @@
 #   git.source       = ${git.source}
 #   git.is_dirty     = ${git.is_dirty}
 #
+timezone: ${coalesce(vm_timezone, "UTC")}
 ssh_pwauth: false
 package_update: true
 package_upgrade: true
@@ -31,6 +32,11 @@ ssh:
     shell: /bin/bash
     lock_passwd: false
     hashed_passwd: "${vm_password_hash}"
+%{ if length(vm_ssh_authorized_keys) > 0 }    ssh_authorized_keys: 
+%{ for key in vm_ssh_authorized_keys ~}
+      - ${key}
+%{ endfor ~}
+%{ endif ~}
 %{ endfor ~}
 %{ endif ~}
 

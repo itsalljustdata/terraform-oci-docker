@@ -77,8 +77,8 @@ locals {
     "configure-ssh.sh" = {
       content          = templatefile("${path.module}/templates/configure-ssh.sh.tftpl", {
         ssh_public_port = local.ssh.public_port
-        ssh_public_key  = local.ssh_public_key
         vm_user         = local.vm.user
+        ssh_public_keys = local.ssh_public_keys_content
       })
       runcmd_order   = 10
     }
@@ -153,12 +153,14 @@ locals {
   ]
 
   cloud_init_rendered = templatefile("${path.module}/templates/cloud-config.yaml.tftpl", {
-    packages         = local.packages
-    cloud_init_files = local.cloud_init_files
-    runcmd_files     = local.runcmd_files_sorted
-    theUsers         = [local.vm.user, "root"]
-    vm_password_hash = module.sha512_password.hash
-    git              = local.git
+    packages          = local.packages
+    cloud_init_files  = local.cloud_init_files
+    runcmd_files      = local.runcmd_files_sorted
+    theUsers          = [local.vm.user, "root"]
+    vm_timezone       = local.vm.timezone
+    vm_password_hash  = module.sha512_password.hash
+    vm_ssh_authorized_keys = local.ssh_public_keys_content
+    git               = local.git
   })
 
   vm_output_files = merge(
@@ -469,7 +471,7 @@ resource "oci_core_instance" "compute_instance" {
   }
 
   metadata = {
-    ssh_authorized_keys = local.ssh_public_key
+    ssh_authorized_keys = join("\n", local.ssh_public_keys_content)
     git_commit          = local.git.commit
     git_remote          = local.git.remote_url
     git_source          = local.git.source
