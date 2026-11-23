@@ -44,5 +44,13 @@ sudoersFile="/etc/sudoers.d/080-cloud-init-users"
 echo "%${vm_user} ALL=(ALL) NOPASSWD: ALL" > "$${sudoersFile}"
 chmod 0440 "$${sudoersFile}"
 
+# Socket activation overrides sshd's configured listen ports on distributions
+# that ship ssh.socket. Disable it so sshd listens on every configured Port.
+if systemctl cat ssh.socket >/dev/null 2>&1; then
+  systemctl disable --now ssh.socket
+fi
+
+sshd -t
 systemctl daemon-reload
-systemctl restart sshd
+systemctl enable ssh.service
+systemctl restart ssh.service

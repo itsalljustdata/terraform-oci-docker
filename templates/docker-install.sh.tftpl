@@ -39,8 +39,10 @@ apt install --quiet -y docker-ce docker-ce-cli containerd.io docker-buildx-plugi
 
 apt autoremove --quiet -y
 
-dockerDataDir="/mnt/data/`hostname -s`/docker"
-containerdDataDir="/mnt/data/`hostname -s`/containerd"
+dirRoot="/mnt/data/$$(hostname -s)"
+
+dockerDataDir="$${dirRoot}/docker"
+containerdDataDir="$${dirRoot}/containerd"
 containerd_config_path="/etc/containerd/config.toml"
 export dockerDataDir containerdDataDir containerd_config_path
 for dir in "$${dockerDataDir}" "$containerdDataDir"; do
@@ -104,6 +106,25 @@ done
 
 if id -u "${vm_user}" >/dev/null 2>&1; then
     usermod -aG docker "${vm_user}" || true
+fi
+
+gitDir="$${dirRoot}/git"
+if [ -d "$$gitDir" ]; then
+    echo "INFO: git directory exists at $${gitDir}"
+else
+    mkdir -p "$$gitDir"
+    chown -R "${vm_user}:${vm_user}" "$$gitDir"
+    chmod 775 "$$gitDir"
+    echo "INFO: git directory created at $${gitDir}"
+fi
+homeGit="/home/${vm_user}/git"
+if [ -d "$$homeGit" ] && [ ! -L "$$homeGit" ]; then
+    echo "WARNING: Actual home git directory exists at $${homeGit}"
+elif [ -L "$$homeGit" ]; then
+    echo "INFO: git symlink already exists at $${homeGit}"
+else
+    echo "INFO: Creating symlink from $${gitDir} to $${homeGit}"
+    ln -s "$$gitDir" "$$homeGit" || true
 fi
 
 docker --version

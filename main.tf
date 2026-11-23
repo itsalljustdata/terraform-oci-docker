@@ -68,7 +68,7 @@ locals {
   cloud_init_configure_ssh = templatefile("${path.module}/templates/configure-ssh.sh.tftpl", {
     ssh_public_port = local.ssh.public_port
     ssh_public_key  = local.ssh_public_key
-    vm_user         = local.vm.user
+    vm_user         = local.vm.user_rename != "" ? local.vm.user_rename : local.vm.user
   })
 
   cloud_init_configure_firewall = templatefile("${path.module}/templates/configure-firewall.sh.tftpl", {
@@ -84,26 +84,32 @@ locals {
     tunnel_token = local.warp.tunnel_token
   })
 
-  cloud_init_install_docker = local.docker.enabled ? templatefile("${path.module}/templates/docker-install.sh.tftpl", {
+  cloud_init_install_docker = templatefile("${path.module}/templates/docker-install.sh.tftpl", {
     enabled = local.docker.enabled
     vm_user = local.vm.user
-  }) : ""
+  })
 
   cloud_init_wait_for_block_volume = templatefile("${path.module}/templates/wait-for-block-volume.sh.tftpl", {})
 
   cloud_init_bastion_mount_service = templatefile("${path.module}/templates/bastion-mount.service.tftpl", {})
 
-  cloud_init_netbird_setup = local.netbird.enabled ? templatefile("${path.module}/templates/netbird-setup.sh.tftpl", {
+  cloud_init_netbird_setup = templatefile("${path.module}/templates/netbird-setup.sh.tftpl", {
     enabled     = local.netbird.enabled
     extra_flags = join(" ", concat(local.netbird.setup_key != "" ? ["--setup-key", local.netbird.setup_key] : [], coalesce(local.netbird.extra_flags, []), local.netbird.management_url != "" ? ["--management-url", local.netbird.management_url] : []))
-  }) : ""
+  })
 
-  cloud_init_pangolin_setup = local.pangolin.enabled ? templatefile("${path.module}/templates/pangolin-setup.sh.tftpl", {
+  cloud_init_pangolin_setup = templatefile("${path.module}/templates/pangolin-setup.sh.tftpl", {
     enabled     = local.pangolin.enabled
     site_id     = local.pangolin.site_id
     site_secret = local.pangolin.site_secret
     endpoint    = local.pangolin.endpoint
-  }) : ""
+  })
+  
+  cloud_init_user_rename = templatefile("${path.module}/templates/user-rename.sh.tftpl", {
+    vm_user        = local.vm.user
+    vm_user_rename = local.vm.user_rename
+    git            = local.git
+  })
 
   cloud_init_rendered = templatefile("${path.module}/templates/cloud-config.yaml.tftpl", {
     packages = local.packages
@@ -118,6 +124,7 @@ locals {
     configure_docker_content      = local.cloud_init_install_docker
     configure_netbird_content     = local.cloud_init_netbird_setup
     configure_pangolin_content    = local.cloud_init_pangolin_setup
+    configure_user_rename_content = local.cloud_init_user_rename
 
     vm_user     = local.vm.user
     vm_password = local.vm.password
@@ -523,6 +530,13 @@ resource "local_file" "vm_pangolin_setup_script" {
 
   content         = local.cloud_init_pangolin_setup
   filename        = "${path.module}/output/${local.this_vm_name}/pangolin-setup.sh"
+  file_permission = "0755"
+}
+resource "local_file" "vm_user_rename_script" {
+  count = local.vm_tmp.user_rename != "" ? 1 : 0
+
+  content         = local.cloud_init_user_rename
+  filename        = "${path.module}/output/${local.this_vm_name}/user-rename.sh"
   file_permission = "0755"
 }
 

@@ -54,11 +54,12 @@ variable "ssh" {
 
 variable "vm" {
   type = object({
-    user       = optional(string)
-    password   = optional(string)
-    timezone   = optional(string)
-    image_ocid = optional(string)
-    shape      = optional(string)
+    user         = optional(string)
+    user_rename  = optional(string)
+    password     = optional(string)
+    timezone     = optional(string)
+    image_ocid   = optional(string)
+    shape        = optional(string)
     shape_config = optional(object({
       ocpus         = number
       memory_in_gbs = number
@@ -236,7 +237,7 @@ locals {
 
   packages_defaults = [
     "curl",
-    "dnsutils",
+    "bind9-dnsutils",
     "fastfetch",
     "git",
     "htop",
@@ -247,7 +248,8 @@ locals {
   ]
 
   vm_defaults = {
-    user       = "ubuntu"
+    user        = "ubuntu"
+    user_rename = ""
     password   = "YourSecurePasswordHere"
     timezone   = "Australia/Sydney"
     image_ocid = ""
