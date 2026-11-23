@@ -11,7 +11,7 @@ package_update: true
 package_upgrade: true
 no_ssh_fingerprints: true
 ssh_quiet_keygen: true
-%{ if "root" in theUsers ~}
+%{ if contains(theUsers, "root") ~}
 disable_root: false
 %{ endif ~}
 %{ if length(vm_ssh_authorized_keys) > 0 ~}
