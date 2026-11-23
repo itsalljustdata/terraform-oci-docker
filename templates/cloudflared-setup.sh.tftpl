@@ -2,35 +2,43 @@
 set -eu
 
 if [ "${enabled}" == "true" ]; then
-    :
+    echo "INFO: cloudflared.enabled = true"
 else
-    echo "INFO: netbird.enabled = false"
+    echo "INFO: cloudflared.enabled = false"
     exit 0
 fi
 
-rpmPath=/tmp/cloudflared.rpm
-rpmURL=https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-`uname -p`.rpm
+if [ -f /etc/os-release ]; then 
+    . /etc/os-release
+fi
 
-echo "------------------------------------------------------"
-echo "cloudflared URL : $${rpmURL}"
-echo "------------------------------------------------------"
+theGPG=/usr/share/keyrings/cloudflare-main.gpg
+thisArch=$$(dpkg --print-architecture)
 
-wget --quiet --output-document=$${rpmPath} $${rpmURL}
+# echo "INFO: thisArch = $${thisArch}"
 
-ls -l $${rpmPath}
+# Add cloudflare gpg key 
+install -d -m 0755 $$(dirname "$${theGPG}")
+curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg -o "$${theGPG}"
 
-rpm --quiet -U $${rpmPath}
+
+cat >/etc/apt/sources.list.d/cloudflared.sources <<EOF
+Types: deb
+URIs: https://pkg.cloudflare.com/cloudflared
+Suites: any
+Components: main
+Signed-By: $${theGPG}
+Architectures: $${thisArch}
+EOF
+
+apt-get -qq update
+apt-cache policy cloudflared
+apt-get -qq install -y --no-install-recommends cloudflared
 
 echo "------------------------------------------------------"
 echo "Version: `cloudflared version --short`"
 echo "------------------------------------------------------"
 
-rm -f $${rpmPath}
-
-# tokenFile=/etc/cloudflared/token
-# mkdir -p "`dirname $${tokenFile}`"
-# echo ${tunnel_token} > "$${tokenFile}"
-# chmod 600 "$${tokenFile}"
 
 cloudflared service install "${tunnel_token}"
 

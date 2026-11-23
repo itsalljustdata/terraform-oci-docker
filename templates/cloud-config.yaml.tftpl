@@ -55,7 +55,7 @@ write_files:
     owner: root:root
     content: |
       ${replace(trimspace(configure_docker_content), "\n", "\n      ")}
-  - path: /usr/local/sbin/user-rename.sh
+  - path: /var/lib/cloud/scripts/per-instance/99-user-rename
     permissions: '0755'
     owner: root:root
     content: |
@@ -81,4 +81,3 @@ runcmd:
   - bash /usr/local/sbin/cloudflare-warp-setup.sh
   - bash /usr/local/sbin/docker-install.sh
   - bash /usr/local/sbin/pangolin-setup.sh
-  - bash /usr/local/sbin/user-rename.sh

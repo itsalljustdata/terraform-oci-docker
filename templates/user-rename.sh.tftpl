@@ -29,7 +29,7 @@ for checkFile in /etc/passwd /etc/group; do
 done
 
 for f in /etc/group /etc/shadow /etc/passwd; do
-    sed -i "s|${vm_user}|${vm_user_rename}|g" "$${f}"
+    sed -i "s|${vm_user}:|${vm_user_rename}:|g" "$${f}"
 done
 
 greppy="^%${vm_user} "
