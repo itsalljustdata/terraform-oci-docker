@@ -237,6 +237,7 @@ locals {
     "git",
     "nano",
     "wget",
+    "jq",
     "htop",
     "fastfetch"
   ]
