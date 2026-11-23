@@ -54,12 +54,12 @@ variable "ssh" {
 
 variable "vm" {
   type = object({
-    user         = optional(string)
-    password     = optional(string)
+    user          = optional(string)
+    password      = optional(string)
     password_hash = optional(string)
-    timezone     = optional(string)
-    image_ocid   = optional(string)
-    shape        = optional(string)
+    timezone      = optional(string)
+    image_ocid    = optional(string)
+    shape         = optional(string)
     shape_config = optional(object({
       ocpus         = number
       memory_in_gbs = number
@@ -68,7 +68,7 @@ variable "vm" {
   })
   description = "Logical grouping for the VM login, OS timezone, OCI image, shape, and flexible-shape sizing."
 
-  sensitive   = true
+  sensitive = true
 
   validation {
     condition = (
@@ -87,14 +87,14 @@ variable "vm" {
 
   validation {
     condition = (
-      (trimspace(coalesce(var.vm.password, "")) != "") !=
-      (trimspace(coalesce(var.vm.password_hash, "")) != "")
+      (try(trimspace(var.vm.password), "") != "") !=
+      (try(trimspace(var.vm.password_hash), "") != "")
     )
     error_message = "Set exactly one of vm.password or vm.password_hash, but not both."
   }
 
   validation {
-    condition = trimspace(coalesce(var.vm.password_hash, "")) == "" || can(regex("^\\$6\\$", trimspace(var.vm.password_hash)))
+    condition     = try(trimspace(var.vm.password_hash), "") == "" || can(regex("^\\$6\\$", try(trimspace(var.vm.password_hash), "")))
     error_message = "vm.password_hash must be a SHA-512 crypt hash beginning with $6$."
   }
 }
@@ -263,12 +263,12 @@ locals {
   ]
 
   vm_defaults = {
-    user        = "ubuntu"
-    password   = ""
-    password_hash   = ""
-    timezone   = "Australia/Sydney"
-    image_ocid = ""
-    shape      = "VM.Standard.A1.Flex"
+    user          = "ubuntu"
+    password      = ""
+    password_hash = ""
+    timezone      = "Australia/Sydney"
+    image_ocid    = ""
+    shape         = "VM.Standard.A1.Flex"
     shape_config = {
       ocpus         = 2
       memory_in_gbs = 12
@@ -316,13 +316,13 @@ locals {
     trimspace(file(pathexpand(public_key_file)))
   ]
 
-  public_IPv4    = local.vm.create_reserved_ip ? try(oci_core_public_ip.vm_reserved_ip[0].ip_address, oci_core_instance.compute_instance.public_ip) : oci_core_instance.compute_instance.public_ip
-  public_IPv6    = local.network.ipv6_enabled ? try(
+  public_IPv4 = local.vm.create_reserved_ip ? try(oci_core_public_ip.vm_reserved_ip[0].ip_address, oci_core_instance.compute_instance.public_ip) : oci_core_instance.compute_instance.public_ip
+  public_IPv6 = local.network.ipv6_enabled ? try(
     oci_core_instance.compute_instance.create_vnic_details[0].ipv6address_ipv6subnet_cidr_pair_details[0].ipv6address,
     ""
   ) : ""
-  public_IP      = local.public_IPv6 != "" ? local.public_IPv6 : local.public_IPv4
-  ssh_aliases     = concat([local.this_vm_name], coalesce(local.ssh.ssh_aliases, []))
+  public_IP        = local.public_IPv6 != "" ? local.public_IPv6 : local.public_IPv4
+  ssh_aliases      = concat([local.this_vm_name], coalesce(local.ssh.ssh_aliases, []))
   ssh_aliases_ipv6 = [for alias in local.ssh_aliases : "${alias}6"]
 
   resource_names = {

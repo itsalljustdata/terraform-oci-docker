@@ -534,7 +534,7 @@ data "oci_identity_availability_domains" "ads" {
 }
 
 module "sha512_password" {
-  count    = trimspace(coalesce(local.vm.password, "")) != "" ? 1 : 0
+  count    = try(trimspace(local.vm.password), "") != "" ? 1 : 0
   source   = "./modules/sha512-password"
   password = local.vm.password
   rounds   = 4096

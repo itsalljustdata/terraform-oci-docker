@@ -6,6 +6,7 @@ output "ssh" {
 output "vm" {
   value       = local.vm
   description = "VM login and timezone settings grouped as one object."
+  sensitive   = true
 }
 
 output "storage" {
