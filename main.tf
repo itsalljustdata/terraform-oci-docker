@@ -247,11 +247,41 @@ resource "oci_core_default_security_list" "security_list" {
   }
 
   dynamic "ingress_security_rules" {
-    for_each = local.network.ipv6_enabled ? [1] : []
+    for_each = length(local.network.vcn_cidr_blocks) > 0 ? local.network.vcn_cidr_blocks : []
     content {
-      description = "Allow IPv6 SSH on the public SSH port"
+      description = "Allow SSH from inside the VCN on the standard port"
       protocol    = "6"
-      source      = "::/0"
+      source      = ingress_security_rules.value
+      source_type = "CIDR_BLOCK"
+      stateless   = false
+      tcp_options {
+        max = 22
+        min = 22
+      }
+    }
+  }
+
+  dynamic "ingress_security_rules" {
+    for_each = length(local.ssh.ssh_allowed_ipv4_cidrs) > 0 ? local.ssh.ssh_allowed_ipv4_cidrs : []
+    content {
+      description = "Allow SSH from the configured external CIDR range on the public SSH port only"
+      protocol    = "6"
+      source      = ingress_security_rules.value
+      source_type = "CIDR_BLOCK"
+      stateless   = false
+      tcp_options {
+        max = local.ssh.public_port
+        min = local.ssh.public_port
+      }
+    }
+  }
+
+  dynamic "ingress_security_rules" {
+    for_each = local.network.ipv6_enabled ? local.ssh.ssh_allowed_ipv6_cidrs : []
+    content {
+      description = "Allow IPv6 SSH from the configured external CIDR range on the public SSH port"
+      protocol    = "6"
+      source      = ingress_security_rules.value
       source_type = "CIDR_BLOCK"
       stateless   = false
       tcp_options {
@@ -269,36 +299,6 @@ resource "oci_core_default_security_list" "security_list" {
       source      = "::/0"
       source_type = "CIDR_BLOCK"
       stateless   = false
-    }
-  }
-
-  dynamic "ingress_security_rules" {
-    for_each = length(local.network.vcn_cidr_blocks) > 0 ? local.network.vcn_cidr_blocks : []
-    content {
-      description = "Allow SSH from inside the VCN on the standard port"
-      protocol    = "6"
-      source      = ingress_security_rules.value
-      source_type = "CIDR_BLOCK"
-      stateless   = false
-      tcp_options {
-        max = 22
-        min = 22
-      }
-    }
-  }
-
-  dynamic "ingress_security_rules" {
-    for_each = length(local.ssh.ssh_allowed_cidrs) > 0 ? local.ssh.ssh_allowed_cidrs : []
-    content {
-      description = "Allow SSH from the configured external CIDR range on the public SSH port only"
-      protocol    = "6"
-      source      = ingress_security_rules.value
-      source_type = "CIDR_BLOCK"
-      stateless   = false
-      tcp_options {
-        max = local.ssh.public_port
-        min = local.ssh.public_port
-      }
     }
   }
 
@@ -526,18 +526,11 @@ resource "local_file" "vm_connectivity_script" {
 }
 
 resource "local_file" "vm_ssh_config" {
-  content = templatefile("${path.module}/templates/config_ssh.tftpl", {
-    ssh_aliases       = local.ssh_aliases
-    ssh_aliases_ipv6  = local.ssh_aliases_ipv6
-    ssh_user          = local.vm.user
-    ssh_log_level     = local.ssh.ssh_log_level
-    public_IPv4       = local.public_IPv4
-    public_IPv6       = local.public_IPv6
-    ssh_port          = local.ssh.public_port
-    git               = local.git
-  })
+  for_each = local.vm_ssh_config_destinations
 
-  filename = pathexpand("~/.ssh/config.d/${local.resource_names.hostname_label}")
+  content         = local.vm_ssh_config_rendered
+  filename        = each.value
+  file_permission = "0644"
 }
 
 ## ==========================================

@@ -26,7 +26,7 @@ network = {
 ssh = {
   public_key_file   = "~/.ssh/id_ed25519.pub"
   public_port       = 1755
-  ssh_allowed_cidrs = ["203.0.113.10/32"]
+  ssh_allowed_ipv4_cidrs = ["203.0.113.10/32"]
   ssh_log_level     = "INFO"
   ssh_aliases       = ["proxmox-oci", "proxmoxOCI"]
 }

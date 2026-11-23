@@ -37,13 +37,14 @@ variable "network" {
 
 variable "ssh" {
   type = object({
-    public_key_file   = optional(string)
-    public_port       = optional(number)
-    ssh_allowed_cidrs = optional(list(string))
-    ssh_log_level     = optional(string)
-    ssh_aliases       = optional(list(string))
+    public_key_file        = optional(string)
+    public_port            = optional(number)
+    ssh_allowed_ipv4_cidrs = optional(list(string))
+    ssh_allowed_ipv6_cidrs = optional(list(string))
+    ssh_log_level          = optional(string)
+    ssh_aliases            = optional(list(string))
   })
-  description = "Logical grouping for SSH access and key configuration. Public SSH access is controlled by ssh_allowed_cidrs."
+  description = "Logical grouping for SSH access and key configuration. Public SSH access is controlled by ssh_allowed_ipv4_cidrs."
 
   validation {
     condition     = coalesce(var.ssh.public_port, 22) >= 1 && coalesce(var.ssh.public_port, 22) <= 65535 && floor(coalesce(var.ssh.public_port, 22)) == coalesce(var.ssh.public_port, 22)
@@ -194,11 +195,12 @@ locals {
   }
 
   ssh_defaults = {
-    public_key_file   = "~/.ssh/id_ed25519.pub"
-    public_port       = 22
-    ssh_allowed_cidrs = ["0.0.0.0/0"]
-    ssh_log_level     = "INFO"
-    ssh_aliases       = []
+    public_key_file        = "~/.ssh/id_ed25519.pub"
+    public_port            = 22
+    ssh_allowed_ipv4_cidrs = ["0.0.0.0/0"]
+    ssh_allowed_ipv6_cidrs = ["::/0"]
+    ssh_log_level          = "INFO"
+    ssh_aliases            = []
   }
 
   storage_defaults = {
