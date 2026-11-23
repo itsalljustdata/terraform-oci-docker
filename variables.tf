@@ -56,6 +56,7 @@ variable "vm" {
   type = object({
     user         = optional(string)
     password     = optional(string)
+    password_hash = optional(string)
     timezone     = optional(string)
     image_ocid   = optional(string)
     shape        = optional(string)
@@ -66,6 +67,8 @@ variable "vm" {
     create_reserved_ip = optional(bool)
   })
   description = "Logical grouping for the VM login, OS timezone, OCI image, shape, and flexible-shape sizing."
+
+  sensitive   = true
 
   validation {
     condition = (
@@ -80,6 +83,19 @@ variable "vm" {
       )
     )
     error_message = "For non-flex shapes, leave shape_config unset. For .Flex shapes, include a positive shape_config with ocpus and memory_in_gbs values."
+  }
+
+  validation {
+    condition = (
+      (trimspace(coalesce(var.vm.password, "")) != "") !=
+      (trimspace(coalesce(var.vm.password_hash, "")) != "")
+    )
+    error_message = "Set exactly one of vm.password or vm.password_hash, but not both."
+  }
+
+  validation {
+    condition = trimspace(coalesce(var.vm.password_hash, "")) == "" || can(regex("^\\$6\\$", trimspace(var.vm.password_hash)))
+    error_message = "vm.password_hash must be a SHA-512 crypt hash beginning with $6$."
   }
 }
 
@@ -248,7 +264,8 @@ locals {
 
   vm_defaults = {
     user        = "ubuntu"
-    password   = "YourSecurePasswordHere"
+    password   = ""
+    password_hash   = ""
     timezone   = "Australia/Sydney"
     image_ocid = ""
     shape      = "VM.Standard.A1.Flex"
@@ -337,5 +354,4 @@ locals {
       local.explicit_compartment_id != "" ? local.explicit_compartment_id : local.oci.tenancy_ocid
     )
   )
-
 }
