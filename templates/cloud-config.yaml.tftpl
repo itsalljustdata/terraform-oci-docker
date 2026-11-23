@@ -14,12 +14,6 @@ ssh_quiet_keygen: true
 %{ if contains(theUsers, "root") ~}
 disable_root: false
 %{ endif ~}
-%{ if length(vm_ssh_authorized_keys) > 0 ~}
-ssh_authorized_keys: 
-%{ for key in vm_ssh_authorized_keys ~}
-  - ${key}
-%{ endfor ~}
-%{ endif ~}
 ssh:
   emit_keys_to_console: false
 %{ if length(packages) > 0 }packages:
@@ -42,6 +36,12 @@ ssh:
     shell: /bin/bash
     lock_passwd: false
     hashed_passwd: "${vm_password_hash}"
+%{ if length(vm_ssh_authorized_keys) > 0 ~}
+    ssh_authorized_keys: 
+%{ for key in vm_ssh_authorized_keys ~}
+      - ${key}
+%{ endfor ~}
+%{ endif ~}
 %{ endfor ~}
 %{ endif ~}
 
