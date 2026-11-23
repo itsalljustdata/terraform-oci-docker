@@ -13,12 +13,12 @@ if [ -f /etc/os-release ]; then
 fi
 
 theGPG=/usr/share/keyrings/cloudflare-main.gpg
-thisArch=$$(dpkg --print-architecture)
+thisArch=$(dpkg --print-architecture)
 
 # echo "INFO: thisArch = $${thisArch}"
 
 # Add cloudflare gpg key 
-install -d -m 0755 $$(dirname "$${theGPG}")
+install -d -m 0755 $(dirname "$${theGPG}")
 curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg -o "$${theGPG}"
 
 

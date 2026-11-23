@@ -39,7 +39,7 @@ apt-get -qq install --quiet -y docker-ce docker-ce-cli containerd.io docker-buil
 
 apt-get autoremove --quiet -y
 
-dirRoot="/mnt/data/$$(hostname -s)"
+dirRoot="/mnt/data/$(hostname -s)"
 
 dockerDataDir="$${dirRoot}/docker"
 containerdDataDir="$${dirRoot}/containerd"

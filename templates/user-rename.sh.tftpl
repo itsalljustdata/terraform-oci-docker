@@ -21,7 +21,7 @@ fi
 #
 greppy="^${vm_user_rename}:"
 for checkFile in /etc/passwd /etc/group; do
-    file=$$(grep -lE "$$greppy" "$$checkFile" 2>/dev/null || true)
+    file=$(grep -lE "$$greppy" "$$checkFile" 2>/dev/null || true)
     if [ -n "$$file" ]; then
         echo "ERROR: Cannot rename '${vm_user}' to '${vm_user_rename}', already exists : $$checkFile"
         exit 1
@@ -33,7 +33,7 @@ for f in /etc/group /etc/shadow /etc/passwd; do
 done
 
 greppy="^%${vm_user} "
-files=$$(grep -lE "$${greppy}" /etc/sudoers.d/* 2>/dev/null || true)
+files=$(grep -lE "$${greppy}" /etc/sudoers.d/* 2>/dev/null || true)
 
 for file in $${files}; do
     echo "DEBUG: Updating '$${file}'"
