@@ -25,7 +25,7 @@ apt-get -qq update
 
 apt-get -qq install --quiet -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-apt-get autoremove --quiet -y
+apt-get -qq autoremove --quiet -y
 
 dirRoot="/mnt/data/$(hostname -s)"
 
