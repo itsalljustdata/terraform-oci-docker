@@ -1,0 +1,23 @@
+#!/bin/bash
+set -eu
+
+%{ if enabled ~}  
+sysctl --system
+if [ ! -d "${base_dir}" ]; then
+  mkdir -p "${base_dir}"
+fi
+if [ ! -f "${base_dir}/private.key" ]; then
+  # Generate private & public keys into ${base_dir} with strict permissions
+  umask 077 && wg genkey | tee ${base_dir}/private.key | wg pubkey > ${base_dir}/public.key
+fi
+# Inject the generated PrivateKey into [Interface]
+if grep -q "PrivateKey" ${base_dir}/wg0.conf || true; then
+  echo "INFO: PrivateKey already injected in ${base_dir}/wg0.conf"
+else
+  sed -i "/^\[Interface\]/a PrivateKey = $(cat ${base_dir}/private.key)" ${base_dir}/wg0.conf
+  systemctl daemon-reload
+  systemctl enable --now wg-quick@wg0
+fi
+%{ else ~}
+echo "INFO: Wireguard is disabled."
+%{ endif ~}

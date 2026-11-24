@@ -11,33 +11,57 @@ package_update: true
 package_upgrade: true
 no_ssh_fingerprints: true
 ssh_quiet_keygen: true
-%{ if contains(theUsers, "root") ~}
-disable_root: false
-%{ endif ~}
+disable_root: ${!contains(theUsers, "root")}
 ssh:
   emit_keys_to_console: false
-%{ if length(packages) > 0 }packages:
+%{ if length(packages) == 0 ~}
+# packages:
+#   No packages specified
+%{ else ~}
+packages:
 %{ for pkg in packages ~}
   - ${pkg}
 %{ endfor ~}
 %{ endif ~}
-%{ if length(cloud_init_files) > 0 ~}write_files:
+%{ if length(cloud_init_files) == 0 ~}
+# write_files:
+#   No cloud init files specified
+%{ else ~}
+write_files:
+%{ if debug ~}
+    # Debug mode enabled, actual file content is being written
+%{ else ~}
+    # To show file content, set debug = true
+%{ endif ~}
 %{ for name, file in cloud_init_files ~}
   - path: ${coalesce(try(file.path, null), "/usr/local/sbin")}/${coalesce(try(file.name, null), name)}
     permissions: '${coalesce(try(file.permissions, null), "0755")}'
     owner: ${coalesce(try(file.owner, null), "root:root")}
+%{ if debug ~}
     content: |
       ${replace(trimspace(file.content), "\n", "\n      ")}
+%{ else ~}
+    encoding: b64 # ASCII Content Length (bytes): ${length(file.content)}
+    content: ${base64encode(file.content)}
+%{ endif ~}
 %{ endfor ~}
 %{ endif ~}
-%{ if length(theUsers) > 0 }users:
+%{ if length(theUsers) == 0 ~}
+# users:
+#   No users specified
+%{ else ~}
+users:
 %{ for user in theUsers ~}
   - name: ${user}
+%{ if user != "root" && contains(packages, "zsh") ~}
+    shell: /usr/bin/zsh # Use zsh as default shell
+%{ else ~}
     shell: /bin/bash
+%{ endif ~}
     lock_passwd: false
     hashed_passwd: "${vm_password_hash}"
 %{ if length(vm_ssh_authorized_keys) > 0 ~}
-    ssh_authorized_keys: 
+    ssh_authorized_keys:
 %{ for key in vm_ssh_authorized_keys ~}
       - ${key}
 %{ endfor ~}
@@ -47,7 +71,11 @@ ssh:
 
 bootcmd:
   - if [ -x /usr/bin/rescan-scsi-bus.sh ]; then cloud-init-per once rescan-scsi /usr/bin/rescan-scsi-bus.sh; fi
-%{ if length(runcmd_files) > 0 }runcmd:
+%{ if length(runcmd_files) == 0 ~}
+# runcmd:
+#   No runcmd files specified
+%{ else ~}
+runcmd:
 %{ for name in runcmd_files ~}
   - bash /usr/local/sbin/${coalesce(try(cloud_init_files[name].name, null), name)}
 %{ endfor ~}

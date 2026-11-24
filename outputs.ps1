@@ -16,7 +16,7 @@ $properties = @($state.outputs.PSObject.Properties)
 for ($i = 0; $i -lt $properties.Count; $i++) {
     $property = $properties[$i]
     $line = "  `"$($property.Name)`": "
-    Write-Host $line -ForegroundColor Cyan
+    Write-Host $line -ForegroundColor Green
     $lines += $line
 
     $json = ConvertTo-Json -InputObject $property.Value.value -Depth 10

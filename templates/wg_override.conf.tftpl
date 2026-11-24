@@ -1,0 +1,9 @@
+%{if enabled ~}
+[Service]
+ExecStart=
+ExecStart=/usr/bin/wg-quick up ${base_dir}/%i.conf
+ExecStop=
+ExecStop=/usr/bin/wg-quick down ${base_dir}/%i.conf
+ExecReload=
+ExecReload=/bin/bash -c 'exec /usr/bin/wg syncconf %i <(exec /usr/bin/wg-quick strip ${base_dir}/%i.conf)'
+%{ endif ~}

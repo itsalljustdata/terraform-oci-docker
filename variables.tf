@@ -1,3 +1,9 @@
+variable "debug" {
+  type        = bool
+  description = "Enable or disable debug mode."
+  default     = false
+}
+
 variable "oci" {
   type = object({
     tenancy_ocid     = optional(string)
@@ -159,6 +165,14 @@ variable "warp" {
   }
 }
 
+variable "wireguard" {
+  type = object({
+    enabled    = optional(bool)
+    public_key = optional(string)
+  })
+  description = "Optional WireGuard settings for the VM."
+}
+
 variable "pangolin" {
   type = object({
     enabled     = optional(bool)
@@ -173,16 +187,13 @@ variable "pangolin" {
     error_message = "pangolin.site_id and pangolin.site_secret are required when pangolin.enabled is true."
   }
 }
-data "external" "git_metadata" {
-  program = ["pwsh", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${path.module}/scripts/git-metadata.ps1", path.module]
-}
 
 locals {
   git = {
-    commit     = try(data.external.git_metadata.result.commit, "unknown")
-    remote_url = try(data.external.git_metadata.result.remote_url, "unknown")
-    source     = try(data.external.git_metadata.result.source, "unknown")
-    is_dirty   = try(data.external.git_metadata.result.is_dirty, "false")
+    commit     = try(module.git_info.commit, "unknown")
+    remote_url = try(module.git_info.remote_url, "unknown")
+    source     = try(module.git_info.source, "unknown")
+    is_dirty   = try(module.git_info.is_dirty, "false")
   }
 
   oci_defaults = {
@@ -239,6 +250,11 @@ locals {
     enabled = true
   }
 
+  wireguard_defaults = {
+    enabled    = false
+    public_key = ""
+  }
+
   cloudflared_defaults = {
     enabled      = false
     tunnel_token = ""
@@ -248,17 +264,21 @@ locals {
     tunnel_token = ""
   }
 
+  packages_wg = local.wireguard.enabled ? ["wireguard-tools", "iptables"] : []
+
   packages_defaults = [
     "curl",
     "bind9-dnsutils",
     "fastfetch",
     "git",
     "htop",
+    "iotop",
     "jq",
     "nano",
     "ufw",
     "wget"
   ]
+
 
   vm_defaults = {
     user          = "ubuntu"
@@ -283,6 +303,7 @@ locals {
   docker      = merge(local.docker_defaults, { for k, v in try(var.docker, {}) : k => v if v != null })
   cloudflared = merge(local.cloudflared_defaults, { for k, v in try(var.cloudflared, {}) : k => v if v != null })
   warp        = merge(local.warp_defaults, { for k, v in try(var.warp, {}) : k => v if v != null })
+  wireguard   = merge(local.wireguard_defaults, { for k, v in try(var.wireguard, {}) : k => v if v != null })
 
   vm_tmp = merge(local.vm_defaults, { for k, v in try(var.vm, {}) : k => v if v != null })
   vm = merge(local.vm_tmp, {
@@ -294,7 +315,7 @@ locals {
 
   pangolin = merge(local.pangolin_defaults, { for k, v in try(var.pangolin, {}) : k => v if v != null })
 
-  packages = distinct(concat(local.packages_defaults, try(var.packages, [])))
+  packages = sort(distinct(concat(local.packages_defaults, local.packages_wg, try(var.packages, []))))
 
   stack_name = local.stack.name != "" ? local.stack.name : "${local.stack.prefix}"
 

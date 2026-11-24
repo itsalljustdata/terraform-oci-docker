@@ -3,6 +3,7 @@ locals {
     "password",
     "password_hash",
     "private_key",
+    "public_key",
     #"private_key_path",
     #"tenancy_ocid",
     #"compartment_ocid",

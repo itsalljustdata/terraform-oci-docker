@@ -1,0 +1,11 @@
+%{ if enabled ~}
+[Interface]
+Address = 10.200.0.1/24
+ListenPort = 51820
+PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+
+#[Peer]
+#PublicKey = <client_1_public_key>
+#AllowedIPs = 10.200.0.2/32
+%{ endif ~}

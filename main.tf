@@ -67,6 +67,37 @@ locals {
         vm_name       = local.this_vm_name
       })
     }
+    "99-wireguard-forward.conf" = {
+      content = templatefile("${path.module}/templates/99-wireguard-forward.conf.tftpl", {
+        enabled = local.wireguard.enabled
+      })
+      path        = "/etc/sysctl.d"
+      permissions = "0644"
+    }
+    "wg0.conf" = {
+      content = templatefile("${path.module}/templates/wg0.conf.tftpl", {
+        enabled    = local.wireguard.enabled
+        public_key = local.wireguard_public_key
+      })
+      path        = local.wireguard_dir
+      permissions = "0600"
+    }
+    "wg_generate_keys.sh" = {
+      content = templatefile("${path.module}/templates/wg_generate_keys.sh.tftpl", {
+        enabled  = local.wireguard.enabled
+        base_dir = local.wireguard_dir
+      })
+      permissions  = "0755"
+      runcmd_order = 90
+    }
+    "override.conf" = {
+      content = templatefile("${path.module}/templates/wg_override.conf.tftpl", {
+        enabled  = local.wireguard.enabled
+        base_dir = local.wireguard_dir
+      })
+      path        = "/etc/systemd/system/wg-quick@wg0.service.d"
+      permissions = "0600"
+    }
     "configure-ssh.sh" = {
       content = templatefile("${path.module}/templates/configure-ssh.sh.tftpl", {
         ssh_public_port = local.ssh.public_port
@@ -146,15 +177,21 @@ locals {
   ]
 
   cloud_init_rendered = templatefile("${path.module}/templates/cloud-config.yaml.tftpl", {
-    packages               = local.packages
-    cloud_init_files       = local.cloud_init_files
+    packages = local.packages
+    cloud_init_files = {
+      for name, file in local.cloud_init_files : name => file
+      if trimspace(try(file.content, "")) != ""
+    }
     runcmd_files           = local.runcmd_files_sorted
     theUsers               = [local.vm.user, "root"]
     vm_timezone            = local.vm.timezone
     vm_password_hash       = try(trimspace(local.vm.password_hash), "") != "" ? trimspace(local.vm.password_hash) : module.sha512_password[0].hash
     vm_ssh_authorized_keys = local.ssh_public_keys_content
     git                    = local.git
+    debug                  = var.debug
   })
+
+  exclude_files = []
 
   vm_output_files = merge(
     {
@@ -164,20 +201,13 @@ locals {
         filename        = "${path.module}/output/${local.this_vm_name}/${coalesce(try(file.name, null), name)}"
         file_permission = coalesce(try(file.permissions, null), "0755")
       }
+      if trimspace(try(file.content, "")) != "" &&
+      !contains(local.exclude_files, name)
     },
     {
       "cloud-config.yaml" = {
         content         = local.cloud_init_rendered
         filename        = "${path.module}/output/${local.this_vm_name}/cloud-config.yaml"
-        file_permission = "0644"
-      }
-      "TestConnect.ps1" = {
-        content = templatefile("${path.module}/templates/TestConnect.ps1.tftpl", {
-          vm_name  = local.this_vm_name
-          publicIP = [local.public_IPv4, local.public_IPv6]
-          ssh_port = local.ssh.public_port
-        })
-        filename        = "${path.module}/output/${local.this_vm_name}/TestConnect.ps1"
         file_permission = "0644"
       }
     },
@@ -500,6 +530,13 @@ resource "oci_core_instance" "compute_instance" {
   availability_config {
     recovery_action = "RESTORE_INSTANCE"
   }
+
+  freeform_tags = merge(
+    {},
+    local.wireguard.enabled ? {
+      "wireguard_public_key" = local.wireguard_public_key
+    } : {}
+  )
 }
 
 resource "local_file" "vm_output_files" {
@@ -509,6 +546,7 @@ resource "local_file" "vm_output_files" {
   filename        = each.value.filename
   file_permission = each.value.file_permission
 }
+
 
 data "oci_core_images" "oracle_linux" {
   compartment_id           = local.compartment_id
@@ -533,9 +571,34 @@ data "oci_identity_availability_domains" "ads" {
   compartment_id = local.compartment_id
 }
 
+module "git_info" {
+  source   = "./modules/git-info"
+  repo_dir = path.module
+}
+
 module "sha512_password" {
   count    = try(trimspace(local.vm.password), "") != "" ? 1 : 0
   source   = "./modules/sha512-password"
   password = local.vm.password
   rounds   = 4096
+}
+
+module "wireguard_keypair" {
+  count       = local.wireguard.enabled && try(trimspace(local.wireguard.public_key), "") == "" ? 1 : 0
+  source      = "./modules/wireguard-keypair"
+  output_file = "${path.module}/wireguard-keypair.json"
+}
+
+locals {
+  wireguard_public_key = try(trimspace(local.wireguard.public_key), "") != "" ? try(trimspace(local.wireguard.public_key), "") : (
+    local.wireguard.enabled ? module.wireguard_keypair[0].public_key : ""
+  )
+
+  wireguard_private_key = local.wireguard.enabled && try(trimspace(local.wireguard.public_key), "") == "" ? module.wireguard_keypair[0].private_key : ""
+
+  wireguard_dir = length(local.storage.block_vol_mounts) > 0 ? join("/", [
+    local.storage.block_vol_mounts[0].path,
+    local.this_vm_name,
+    "wireguard"
+  ]) : "/etc/wireguard"
 }
