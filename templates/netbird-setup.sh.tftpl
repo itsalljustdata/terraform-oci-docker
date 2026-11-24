@@ -1,7 +1,6 @@
 #!/bin/bash
 set -eu
-
-%{ if enabled }
+%{ if enabled ~}
 curl -fsSL https://pkgs.netbird.io/install.sh | USE_BIN_INSTALL=true SKIP_UI_APP=true sh
 netbird_exe="`command -v netbird`"
 netbird_conf="/etc/sysconfig/netbird"
@@ -15,6 +14,6 @@ systemctl enable --now netbird || true
 
 netbird up ${extra_flags}
 netbird status
-%{ else }
+%{ else ~}
 echo "INFO: netbird.enabled = false"
-%{ endif }
+%{ endif ~}
