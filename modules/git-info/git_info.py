@@ -43,19 +43,27 @@ def get_repo_info(repo_dir: str = "") -> dict[str, str]:
         else:
             source = normalized
 
-    return {
-        "commit": commit,
-        "remote_url": remote_url,
-        "source": source,
-        "is_dirty": str(is_dirty).lower(),
-    }
+    retDict = dict (
+        commit     = commit,
+        remote_url = remote_url,
+        source     = source,
+        is_dirty   = str(is_dirty).lower(),
+    )
+    return retDict
 
+
+def fromArgs() -> dict[str, str]:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--repo-dir", dest="repo_dir", help="Path to the repository directory", required=True, type=str)
+    parser.add_argument("--print", dest="print_output", help="Print the output", action="store_true")
+    args = parser.parse_args()
+    
+    info = get_repo_info(repo_dir = args.repo_dir)
+
+    if args.print_output:
+        print(json.dumps(info, indent=2))
+
+    return info
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("repo_dir", nargs="?", default="")
-    parser.add_argument("--repo-dir", dest="repo_dir_flag", default="")
-    args = parser.parse_args()
-
-    repo = args.repo_dir_flag or args.repo_dir
-    print(json.dumps(get_repo_info(repo), separators=(",", ":")))
+    fromArgs()

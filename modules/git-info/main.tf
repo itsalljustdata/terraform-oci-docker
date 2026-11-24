@@ -12,28 +12,12 @@ variable "repo_dir" {
 }
 
 data "external" "git_info" {
-  program = ["python", "-c", <<-PY
-import json
-import subprocess
-import sys
-
-payload = json.loads(sys.stdin.read())
-repo_dir = payload["repo_dir"]
-
-script = r"${path.module}/git_info.py"
-result = subprocess.run(
-    ["python", script, repo_dir],
-    capture_output=True,
-    text=True,
-    check=True,
-)
-print(result.stdout.strip())
-PY
-  ]
-
-  query = {
-    repo_dir = var.repo_dir
-  }
+  program = [
+                "python",
+                "${path.module}/git_info.py",
+                "--repo-dir", var.repo_dir,
+                "--print"
+            ]
 }
 
 output "commit" {
