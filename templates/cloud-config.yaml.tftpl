@@ -29,10 +29,10 @@ packages:
 %{ else ~}
 write_files:
 %{ if encode_files ~}
-    # Encode mode enabled, file content will be base64 encoded
-    # to write the actual file content, set encode_files = false
+  # Encode mode enabled, file content will be base64 encoded
+  # to write the actual file content, set encode_files = false
 %{ else ~}
-    # To hide file content, set encode_files = true
+  # To hide file content, set encode_files = true
 %{ endif ~}
 %{ for name, file in cloud_init_files ~}
   - path: ${coalesce(try(file.path, null), "/usr/local/sbin")}/${coalesce(try(file.name, null), name)}
