@@ -28,21 +28,22 @@ packages:
 #   No cloud init files specified
 %{ else ~}
 write_files:
-%{ if debug ~}
-    # Debug mode enabled, actual file content is being written
+%{ if encode_files ~}
+    # Encode mode enabled, file content will be base64 encoded
+    # to write the actual file content, set encode_files = false
 %{ else ~}
-    # To show file content, set debug = true
+    # To hide file content, set encode_files = true
 %{ endif ~}
 %{ for name, file in cloud_init_files ~}
   - path: ${coalesce(try(file.path, null), "/usr/local/sbin")}/${coalesce(try(file.name, null), name)}
     permissions: '${coalesce(try(file.permissions, null), "0755")}'
     owner: ${coalesce(try(file.owner, null), "root:root")}
-%{ if debug ~}
-    content: |
-      ${replace(trimspace(file.content), "\n", "\n      ")}
-%{ else ~}
+%{ if encode_files ~}
     encoding: b64 # ASCII Content Length (bytes): ${length(file.content)}
     content: ${base64encode(file.content)}
+%{ else ~}
+    content: |
+      ${replace(trimspace(file.content), "\n", "\n      ")}
 %{ endif ~}
 %{ endfor ~}
 %{ endif ~}

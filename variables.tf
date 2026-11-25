@@ -1,6 +1,6 @@
-variable "debug" {
+variable "encode_files_in_cloud_init" {
   type        = bool
-  description = "Enable or disable debug mode."
+  description = "Enable or disable writing b64 encoded files within cloud-init."
   default     = false
 }
 
@@ -168,7 +168,7 @@ variable "warp" {
 variable "wireguard" {
   type = object({
     enabled    = optional(bool)
-    public_key = optional(string)
+    # public_key = optional(string)
   })
   description = "Optional WireGuard settings for the VM."
 }
@@ -252,7 +252,7 @@ locals {
 
   wireguard_defaults = {
     enabled    = false
-    public_key = ""
+    # public_key = ""
   }
 
   cloudflared_defaults = {

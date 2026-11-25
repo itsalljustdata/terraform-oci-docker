@@ -77,7 +77,7 @@ locals {
     "wg0.conf" = {
       content = templatefile("${path.module}/templates/wg0.conf.tftpl", {
         enabled    = local.wireguard.enabled
-        public_key = local.wireguard_public_key
+        #public_key = local.wireguard_public_key
       })
       path        = local.wireguard_dir
       permissions = "0600"
@@ -188,7 +188,7 @@ locals {
     vm_password_hash       = try(trimspace(local.vm.password_hash), "") != "" ? trimspace(local.vm.password_hash) : module.sha512_password[0].hash
     vm_ssh_authorized_keys = local.ssh_public_keys_content
     git                    = local.git
-    debug                  = var.debug
+    encode_files           = var.encode_files_in_cloud_init
   })
 
   exclude_files = []
@@ -531,12 +531,12 @@ resource "oci_core_instance" "compute_instance" {
     recovery_action = "RESTORE_INSTANCE"
   }
 
-  freeform_tags = merge(
-    {},
-    local.wireguard.enabled ? {
-      "wireguard_public_key" = local.wireguard_public_key
-    } : {}
-  )
+  # freeform_tags = merge(
+  #   {},
+  #   local.wireguard.enabled ? {
+  #     "wireguard_public_key" = local.wireguard_public_key
+  #   } : {}
+  # )
 }
 
 resource "local_file" "vm_output_files" {
@@ -583,18 +583,18 @@ module "sha512_password" {
   rounds   = 4096
 }
 
-module "wireguard_keypair" {
-  count       = local.wireguard.enabled && try(trimspace(local.wireguard.public_key), "") == "" ? 1 : 0
-  source      = "./modules/wireguard-keypair"
-  output_file = "${path.module}/wireguard-keypair.json"
-}
+# module "wireguard_keypair" {
+#   count       = local.wireguard.enabled && try(trimspace(local.wireguard.public_key), "") == "" ? 1 : 0
+#   source      = "./modules/wireguard-keypair"
+#   output_file = "${path.module}/wireguard-keypair.json"
+# }
 
 locals {
-  wireguard_public_key = try(trimspace(local.wireguard.public_key), "") != "" ? try(trimspace(local.wireguard.public_key), "") : (
-    local.wireguard.enabled ? module.wireguard_keypair[0].public_key : ""
-  )
+  # wireguard_public_key = try(trimspace(local.wireguard.public_key), "") != "" ? try(trimspace(local.wireguard.public_key), "") : (
+  #   local.wireguard.enabled ? module.wireguard_keypair[0].public_key : ""
+  # )
 
-  wireguard_private_key = local.wireguard.enabled && try(trimspace(local.wireguard.public_key), "") == "" ? module.wireguard_keypair[0].private_key : ""
+  # wireguard_private_key = local.wireguard.enabled && try(trimspace(local.wireguard.public_key), "") == "" ? module.wireguard_keypair[0].private_key : ""
 
   wireguard_dir = length(local.storage.block_vol_mounts) > 0 ? join("/", [
     local.storage.block_vol_mounts[0].path,
