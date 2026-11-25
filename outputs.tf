@@ -108,6 +108,11 @@ output "dns" {
   description = "Derived VCN, subnet, search-domain, and public-name settings."
 }
 
+output "wireguard" {
+  value       = local.wireguard
+  description = "WireGuard settings."
+}
+
 output "resource_names" {
   value       = local.resource_names
   description = "Terraform-managed OCI and network resource names."
@@ -118,12 +123,22 @@ output "vm_ssh_config_destinations" {
   description = "Local paths for generated VM SSH configuration."
 }
 
-output "image_default_ubuntu" {
-  value       = try (data.oci_core_images.ubuntu.images[0],null)
-  description = "Dump of the OCI Ubuntu image lookup results."
+output "latest_version_ubuntu" {
+  value       = local.latest_version_ubuntu
+  description = "Latest available Ubuntu version."  
 }
 
-output "image_default_oracle" {
-  value       = try (data.oci_core_images.oracle_linux.images[0],null)
-  description = "Dump of the OCI Oracle image lookup results."
+# output "image_default" {
+#   value       = local.image_default
+#   description = "default image when not supplied"
+# }
+
+output "images_all" {
+  value       = local.images_all
+  description = "All available OCI images (based on VM shape)."
+}
+
+output "image" {
+  value       = local.image
+  description = "Selected OCI image based on the provided/default image OCID."
 }

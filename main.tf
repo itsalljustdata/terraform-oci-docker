@@ -76,7 +76,7 @@ locals {
     }
     "wg0.conf" = {
       content = templatefile("${path.module}/templates/wg0.conf.tftpl", {
-        enabled    = local.wireguard.enabled
+        enabled = local.wireguard.enabled
         #public_key = local.wireguard_public_key
       })
       path        = local.wireguard_dir
@@ -185,7 +185,7 @@ locals {
     runcmd_files           = local.runcmd_files_sorted
     theUsers               = [local.vm.user, "root"]
     vm_timezone            = local.vm.timezone
-    vm_password            = local.vm.password
+    vm_password            = local.vm.password # Pass this as null (if you want to set with the hashed password instead)
     vm_password_hash       = try(trimspace(local.vm.password_hash), "") != "" ? trimspace(local.vm.password_hash) : module.sha512_password[0].hash
     vm_ssh_authorized_keys = local.ssh_public_keys_content
     git                    = local.git
@@ -549,23 +549,12 @@ resource "local_file" "vm_output_files" {
 }
 
 
-data "oci_core_images" "oracle_linux" {
-  compartment_id           = local.compartment_id
-  operating_system         = "Oracle Linux"
-  operating_system_version = "9"
-  shape                    = local.vm_tmp.shape
-  sort_by                  = "TIMECREATED"
-  sort_order               = "DESC"
-}
-
-
-data "oci_core_images" "ubuntu" {
-  compartment_id           = local.compartment_id
-  operating_system         = "Canonical Ubuntu"
-  operating_system_version = "26.04 Minimal aarch64"
-  shape                    = local.vm_tmp.shape
-  sort_by                  = "TIMECREATED"
-  sort_order               = "DESC"
+data "oci_core_images" "all" {
+  compartment_id = local.compartment_id
+  shape          = local.vm_tmp.shape
+  state          = "AVAILABLE"
+  sort_by        = "TIMECREATED"
+  sort_order     = "DESC"
 }
 
 data "oci_identity_availability_domains" "ads" {

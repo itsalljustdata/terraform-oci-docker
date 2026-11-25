@@ -167,7 +167,7 @@ variable "warp" {
 
 variable "wireguard" {
   type = object({
-    enabled    = optional(bool)
+    enabled = optional(bool)
     # public_key = optional(string)
   })
   description = "Optional WireGuard settings for the VM."
@@ -251,7 +251,7 @@ locals {
   }
 
   wireguard_defaults = {
-    enabled    = false
+    enabled = false
     # public_key = ""
   }
 
@@ -306,9 +306,82 @@ locals {
   wireguard   = merge(local.wireguard_defaults, { for k, v in try(var.wireguard, {}) : k => v if v != null })
 
   vm_tmp = merge(local.vm_defaults, { for k, v in try(var.vm, {}) : k => v if v != null })
+
+  imageKeys = [
+    "id", "display_name",
+    "operating_system", "operating_system_version",
+    "time_created"
+  ]
+
+  images_all = [
+      for source_image in data.oci_core_images.all.images : {
+        for key in local.imageKeys : key => source_image[key]
+        if can(source_image[key])
+      }
+    ]
+
+  versions_all = flatten([
+    for operating_system in sort(distinct([
+      for image in local.images_all : image.operating_system
+      ])) : [
+      for operating_system_version in reverse(sort(distinct([
+        for image in local.images_all : image.operating_system_version
+        if image.operating_system == operating_system
+        ]))) : {
+        operating_system         = operating_system
+        operating_system_version = operating_system_version
+      }
+    ]
+  ])
+
+  ubuntu_images_all = [
+    for image in local.images_all : image
+    if image.operating_system == "Canonical Ubuntu"
+  ]
+  # versions_ubuntu_all = reverse(sort(distinct([
+  #   for image in local.ubuntu_images_all : image.operating_system_version
+  # ])))
+  versions_ubuntu_all = reverse(sort(distinct([
+    for image in local.ubuntu_images_all :
+    tonumber(split(" ", image.operating_system_version)[0])
+  ])))
+
+  ubuntu_images_minimal_all = [
+    for image in local.ubuntu_images_all : image
+    if strcontains(image.operating_system_version, "Minimal")
+  ]
+  # versions_ubuntu_minimal = reverse(sort(distinct([
+  #   for image in local.ubuntu_images_minimal_all : image.operating_system_version
+  # ])))
+  versions_ubuntu_minimal = reverse(sort(distinct([
+    for image in local.ubuntu_images_minimal_all :
+    tonumber(split(" ", image.operating_system_version)[0])
+  ])))
+
+  latest_version_ubuntu = local.versions_ubuntu_minimal[0]
+
+  # the most recent version of each Ubuntu operating system version
+  ubuntu_images_minimal_by_version = flatten([
+    for version in local.versions_ubuntu_minimal : slice([
+      for image in local.ubuntu_images_minimal_all : image
+      if startswith(image.operating_system_version, tostring(version))
+    ], 0, 1)
+  ])
+
+  oracle_images = [
+    for image in local.images_all : image
+    if image.operating_system == "Oracle Linux" &&
+    image.operating_system_version == "10"
+  ]
+
+  image_default = [
+    for image in local.ubuntu_images_minimal_by_version : image
+    if startswith(image.operating_system_version, tostring(local.latest_version_ubuntu))
+  ][0]
+
   vm = merge(local.vm_tmp, {
     image_ocid = trimspace(local.vm_tmp.image_ocid) != "" ? local.vm_tmp.image_ocid : try(
-      data.oci_core_images.ubuntu.images[0].id,
+      local.image_default.id,
       ""
     )
   })
@@ -372,5 +445,14 @@ locals {
     local.stack_compartment_id != "" ? local.stack_compartment_id : (
       local.explicit_compartment_id != "" ? local.explicit_compartment_id : local.oci.tenancy_ocid
     )
+  )
+
+
+  image = try(
+    one([
+      for source_image in local.images_all : source_image
+      if source_image.id == local.vm.image_ocid
+    ]),
+    null
   )
 }
