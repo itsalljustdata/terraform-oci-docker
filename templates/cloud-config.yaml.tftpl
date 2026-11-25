@@ -131,8 +131,8 @@ bootcmd:
 #
 runcmd:
   - systemctl daemon-reload
-%{ for mount in block_vol_mounts ~}
-  - [ bash, -c, "systemctl start \"$(systemd-escape --path --suffix=automount '${mount.path}')\"" ]
+%{ for mount in block_vols ~}
+  - [ bash, -c, "systemctl start \"$(systemd-escape --path --suffix=automount '${mount.path}')\"" ] # ${mount.display_name}
 %{ endfor ~}
 %{ if length(runcmd_files) == 0 ~}
   # No runcmd files specified
