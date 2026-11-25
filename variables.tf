@@ -463,4 +463,23 @@ locals {
     ]),
     null
   )
+
+  # block_vol_fields = ["display_name","size_in_gbs","size_in_mbs"]
+
+  block_mount_volumes = {
+    for ocid, volume in data.oci_core_volume.block_mount_volumes :
+    ocid => volume
+  }
+
+  block_mounts = [
+    for mount in local.storage.block_vol_mounts :
+    merge(mount, local.block_mount_volumes[mount.ocid])
+  ]
+  # block_mount_volume_names = {
+  #   for ocid, volume in local.block_mount_volumes :
+  #   ocid => volume.display_name
+  # }
+
+  # block_mounts = []
+
 }

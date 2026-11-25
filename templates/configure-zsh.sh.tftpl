@@ -1,0 +1,32 @@
+#!/bin/bash
+set -eu
+
+RECOMMENDED_ZSHRC="/etc/zsh/newuser.zshrc.recommended"
+
+# Seed /etc/skel for any future users
+if [ -f "$${RECOMMENDED_ZSHRC}" ] && [ ! -f /etc/skel/.zshrc ]; then
+  cp "$${RECOMMENDED_ZSHRC}" /etc/skel/.zshrc
+fi
+
+# Find all users in /etc/passwd whose login shell ends with /zsh
+getent passwd | awk -F: '$7 ~ /\/zsh$/ { print $1 ":" $6 }' | while IFS=: read -r username user_home; do
+  [ -d "$${user_home}" ] || continue
+
+  zshrc="$${user_home}/.zshrc"
+  if [ ! -f "$${zshrc}" ]; then
+    if [ -f "$${RECOMMENDED_ZSHRC}" ]; then
+      cp "$${RECOMMENDED_ZSHRC}" "$${zshrc}"
+    else
+      cat > "$${zshrc}" <<'EOF'
+# Default .zshrc created by cloud-init
+autoload -Uz compinit && compinit
+HISTFILE=~/.zsh_history
+HISTSIZE=10000
+SAVEHIST=10000
+setopt appendhistory
+EOF
+    fi
+    chown "$${username}:$(id -gn "$${username}")" "$${zshrc}"
+    chmod 0644 "$${zshrc}"
+  fi
+done

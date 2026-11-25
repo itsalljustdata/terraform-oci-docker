@@ -128,11 +128,6 @@ output "latest_version_ubuntu" {
   description = "Latest available Ubuntu version."  
 }
 
-# output "image_default" {
-#   value       = local.image_default
-#   description = "default image when not supplied"
-# }
-
 output "images_all" {
   value       = local.images_all
   description = "All available OCI images (based on VM shape)."
@@ -141,4 +136,9 @@ output "images_all" {
 output "image" {
   value       = local.image
   description = "Selected OCI image based on the provided/default image OCID."
+}
+
+output "block_mounts" {
+  value       = local.block_mounts
+  description = "List of block mount configurations."
 }

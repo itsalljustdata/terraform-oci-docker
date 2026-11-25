@@ -26,6 +26,22 @@ ssh_publish_hostkeys:
 ssh:
   emit_keys_to_console: false
 #
+# Block volume mounts (${length(block_vols)}) configuration
+#
+%{ if length(block_vols) > 0 ~}
+mounts:
+%{ for mount in block_vols ~}
+  # 
+  # display_name   : ${mount.display_name}
+  # size           : ${mount.size_in_mbs} MB (${mount.size_in_gbs} GB)
+  # ocid           : ${mount.ocid}
+  # compartment_id : ${mount.compartment_id}
+  - ["${mount.device}","${mount.path}","${mount.fs_type}","${join(",", mount.mount_options)}","0","2"]
+%{ endfor ~}
+%{ else ~}
+  # No block volume mounts specified
+%{ endif ~}
+#
 # Packages
 #
 package_update: true
@@ -113,11 +129,14 @@ bootcmd:
 #
 # Run commands
 #
-%{ if length(runcmd_files) == 0 ~}
-# runcmd:
-#   No runcmd files specified
-%{ else ~}
 runcmd:
+  - systemctl daemon-reload
+%{ for mount in block_vol_mounts ~}
+  - [ bash, -c, "systemctl start \"$(systemd-escape --path --suffix=automount '${mount.path}')\"" ]
+%{ endfor ~}
+%{ if length(runcmd_files) == 0 ~}
+  # No runcmd files specified
+%{ else ~}
 %{ for name in runcmd_files ~}
   - bash /usr/local/sbin/${coalesce(try(cloud_init_files[name].name, null), name)}
 %{ endfor ~}

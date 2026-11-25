@@ -61,12 +61,12 @@ locals {
   }
 
   cloud_init_files = {
-    "mount-block-volumes.sh" = {
-      content = templatefile("${path.module}/templates/mount-block-volumes.sh.tftpl", {
-        mount_entries = local.storage.block_vol_mounts
-        vm_name       = local.this_vm_name
-      })
-    }
+    # "mount-block-volumes.sh" = {
+    #   content = templatefile("${path.module}/templates/mount-block-volumes.sh.tftpl", {
+    #     mount_entries = local.storage.block_vol_mounts
+    #     vm_name       = local.this_vm_name
+    #   })
+    # }
     # "99-wireguard-forward.conf" = {
     #   content = templatefile("${path.module}/templates/99-wireguard-forward.conf.tftpl", {
     #     enabled = local.wireguard.enabled
@@ -113,19 +113,19 @@ locals {
       })
       runcmd_order = 20
     }
-    "wait-for-block-volume.sh" = {
-      content = templatefile("${path.module}/templates/wait-for-block-volume.sh.tftpl", {})
-      name    = "wait-for-block-volume.sh"
-    }
-    "block-volume-mount.service" = {
-      path        = "/etc/systemd/system"
-      permissions = "0644"
-      content     = templatefile("${path.module}/templates/block-volume-mount.service.tftpl", {})
-    }
-    "enable-block-volume-service.sh" = {
-      content      = templatefile("${path.module}/templates/enable-block-volume-service.sh.tftpl", {})
-      runcmd_order = 30
-    }
+    # "wait-for-block-volume.sh" = {
+    #   content = templatefile("${path.module}/templates/wait-for-block-volume.sh.tftpl", {})
+    #   name    = "wait-for-block-volume.sh"
+    # }
+    # "block-volume-mount.service" = {
+    #   path        = "/etc/systemd/system"
+    #   permissions = "0644"
+    #   content     = templatefile("${path.module}/templates/block-volume-mount.service.tftpl", {})
+    # }
+    # "enable-block-volume-service.sh" = {
+    #   content      = templatefile("${path.module}/templates/enable-block-volume-service.sh.tftpl", {})
+    #   runcmd_order = 30
+    # }
     "netbird-setup.sh" = {
       content = templatefile("${path.module}/templates/netbird-setup.sh.tftpl", {
         enabled     = local.netbird.enabled
@@ -191,6 +191,7 @@ locals {
     vm_ssh_authorized_keys = local.ssh_public_keys_content
     git                    = local.git
     encode_files           = var.encode_files_in_cloud_init
+    block_vols             = local.block_mounts
   })
 
   exclude_files = []
@@ -415,6 +416,11 @@ resource "oci_core_subnet" "public_subnet" {
     "git.source"     = local.git.source
     "git.is_dirty"   = local.git.is_dirty
   }
+}
+
+data "oci_core_volume" "block_mount_volumes" {
+  for_each  = { for mount in local.storage.block_vol_mounts : mount.ocid => mount }
+  volume_id = each.key
 }
 
 resource "oci_core_volume_attachment" "block_volume_attachments" {

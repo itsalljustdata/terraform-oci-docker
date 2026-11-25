@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('apply', 'force', 'destroy')]
+    [ValidateSet('apply', 'force', 'destroy', 'output')]
     [string]$Action = 'apply',
 
     [Parameter(ValueFromRemainingArguments = $true)]
@@ -19,6 +19,7 @@ Actions:
   apply    Run terraform apply -auto-approve -compact-warnings -replace=oci_core_instance.compute_instance
   preserve  Run terraform apply -auto-approve -compact-warnings without replacing oci_core_instance.compute_instance
   destroy  Run terraform apply -destroy -auto-approve
+  output   Run terraform output for local_file.vm_output_files
 
 Examples:
   .\tf_apply.ps1
@@ -39,7 +40,8 @@ Set-Location $PSScriptRoot
 
 $terraformArgsDefault = @('-auto-approve', '-compact-warnings', '-no-color', '-input=false')
 $terraformArgumentsDestroy = @('-destroy') + $terraformArgsDefault
-$terraformArguments = $terraformArgsDefault + ('-replace=oci_core_instance.compute_instance')
+$terraformArgumentsOutput = @('-target=local_file.vm_output_files') + $terraformArgsDefault
+$terraformArguments = @('-replace=oci_core_instance.compute_instance') + $terraformArgsDefault
 
 $extraLogName=''
 
@@ -50,6 +52,10 @@ switch ($Action) {
     }
     'destroy' {
         $terraformArguments = $terraformArgumentsDestroy
+        $extraLogName+='.' + $Action
+    }
+    'output' {
+        $terraformArguments = $terraformArgumentsOutput
         $extraLogName+='.' + $Action
     }
 }
@@ -84,7 +90,7 @@ Write-Host "$($terraformArguments -join ' ')" -ForegroundColor DarkRed
     }
 $terraformExit = $LASTEXITCODE
 
-if ($terraformExit -eq 0 -and $Action -in @('apply', 'preserve')) {
+if ($terraformExit -eq 0 -and $Action -in @('apply', 'preserve', 'output')) {
     & (Join-Path $PSScriptRoot 'outputs.ps1')
     # & pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'outputs.ps1')
 }

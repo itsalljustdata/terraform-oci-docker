@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eu
 
-%{ if !firewall_command ~}
+%{ if trimspace(firewall_command) == "" ~}
 echo "WARNING: Firewall command is not specified."
 exit 0
 %{ else ~}
