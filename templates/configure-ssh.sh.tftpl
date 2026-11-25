@@ -1,9 +1,13 @@
 #!/bin/bash
 set -eu
 
+echo "INFO: ------------------------------------------------------"
+echo "INFO: Configuring SSH..."
+echo "INFO: ------------------------------------------------------"
+
+
 sshd_dir="/etc/ssh/sshd_config.d"
 auth_drop_in="$${sshd_dir}/98-bastion-auth.conf"
-port_drop_in="$${sshd_dir}/99-bastion-ports.conf"
 
 if [ ! -d "$${sshd_dir}" ]; then
   mkdir -p "$${sshd_dir}"
@@ -12,17 +16,18 @@ if [ ! -d "$${sshd_dir}" ]; then
   fi
 fi
 
+%{ if ssh_public_port != "22" ~}
+port_drop_in="$${sshd_dir}/99-bastion-ports.conf"
 cat > "$${port_drop_in}" <<'PORT_EOF'
 # Managed by Terraform.
 Port 22
 PORT_EOF
 
-%{ if ssh_public_port != "22" }
 printf 'Port %s\n' "${ssh_public_port}" >> "$${port_drop_in}"
 semanage port -a -t ssh_port_t -p tcp "${ssh_public_port}" || true
-%{ endif }  
+%{ endif ~}  
 
-theFile="/etc/ssh/authorized_keys"
+# theFile="/etc/ssh/authorized_keys"
 
 authKeysVal=$(sshd -T | grep authorizedkeysfile)
 
@@ -33,18 +38,18 @@ KbdInteractiveAuthentication no
 UsePAM yes
 AUTH_EOF
 
-printf '%s %s\n' "$${authKeysVal}" "$${theFile}" >> "$${auth_drop_in}"
+# printf '%s %s\n' "$${authKeysVal}" "$${theFile}" >> "$${auth_drop_in}"
 
-if [ ! -f "$${theFile}" ]; then
-  touch "$${theFile}"
-  %{ for public_key in ssh_public_keys ~}
-    printf '%s\n' "${public_key}" >> "$${theFile}"
-  %{ endfor ~}
-fi
+# if [ ! -f "$${theFile}" ]; then
+#   touch "$${theFile}"
+#   %{ for public_key in ssh_public_keys ~}
+#     printf '%s\n' "${public_key}" >> "$${theFile}"
+#   %{ endfor ~}
+# fi
 
-sudoersFile="/etc/sudoers.d/080-cloud-init-users"
-echo "%${vm_user} ALL=(ALL) NOPASSWD: ALL" > "$${sudoersFile}"
-chmod 0440 "$${sudoersFile}"
+# sudoersFile="/etc/sudoers.d/080-cloud-init-users"
+# echo "%${vm_user} ALL=(ALL) NOPASSWD: ALL" > "$${sudoersFile}"
+# chmod 0440 "$${sudoersFile}"
 
 # Socket activation overrides sshd's configured listen ports on distributions
 # that ship ssh.socket. Disable it so sshd listens on every configured Port.
@@ -56,3 +61,7 @@ sshd -t
 systemctl daemon-reload
 systemctl enable ssh.service
 systemctl restart ssh.service
+
+echo "INFO: ------------------------------------------------------"
+echo "INFO: SSH configuration completed."
+echo "INFO: ------------------------------------------------------"

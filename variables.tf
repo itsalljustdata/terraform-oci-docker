@@ -275,6 +275,7 @@ locals {
     "iotop",
     "jq",
     "nano",
+    "python3-pip",
     "ufw",
     "wget"
   ]

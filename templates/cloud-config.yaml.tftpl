@@ -6,14 +6,30 @@
 #   git.is_dirty     = ${git.is_dirty}
 #
 timezone: ${coalesce(vm_timezone, "UTC")}
+#
+# SSH configuration
+#
+allow_public_ssh_keys: true
 ssh_pwauth: false
-package_update: true
-package_upgrade: true
-# no_ssh_fingerprints: true
 ssh_quiet_keygen: true
-disable_root: ${!contains(theUsers, "root")}
+no_ssh_fingerprints: true
+authkey_hash: sha512
+%{ if length(vm_ssh_authorized_keys) > 0 ~}
+ssh_authorized_keys:
+%{ for key in vm_ssh_authorized_keys ~}
+  - ${key}
+%{ endfor ~}
+%{ endif ~}
+ssh_publish_hostkeys:
+  blacklist: [rsa]
+  enabled: true
 ssh:
   emit_keys_to_console: false
+#
+# Packages
+#
+package_update: true
+package_upgrade: true
 %{ if length(packages) == 0 ~}
 # packages:
 #   No packages specified
@@ -23,6 +39,9 @@ packages:
   - ${pkg}
 %{ endfor ~}
 %{ endif ~}
+#
+# Writing cloud init files
+#
 %{ if length(cloud_init_files) == 0 ~}
 # write_files:
 #   No cloud init files specified
@@ -47,6 +66,10 @@ write_files:
 %{ endif ~}
 %{ endfor ~}
 %{ endif ~}
+#
+# User configuration
+#
+disable_root: ${!contains(theUsers, "root")}
 %{ if length(theUsers) == 0 ~}
 # users:
 #   No users specified
@@ -58,6 +81,11 @@ users:
     shell: /usr/bin/zsh # Use zsh as default shell
 %{ else ~}
     shell: /bin/bash
+%{ endif ~}
+%{ if user == "root" ~}
+    ssh_redirect_user: false
+%{ else ~}
+    sudo:  "ALL=(ALL) NOPASSWD:ALL"
 %{ endif ~}
     lock_passwd: false
 %{ if vm_password != "" ~}
@@ -73,9 +101,14 @@ users:
 %{ endif ~}
 %{ endfor ~}
 %{ endif ~}
-
+#
+# Boot commands
+#
 bootcmd:
   - if [ -x /usr/bin/rescan-scsi-bus.sh ]; then cloud-init-per once rescan-scsi /usr/bin/rescan-scsi-bus.sh; fi
+#
+# Run commands
+#
 %{ if length(runcmd_files) == 0 ~}
 # runcmd:
 #   No runcmd files specified
