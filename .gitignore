@@ -60,3 +60,5 @@ console-history-*.log
 output/*
 !output/.gitkeep
 *.json
+*.txt
+*.log

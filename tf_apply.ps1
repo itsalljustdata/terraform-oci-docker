@@ -41,12 +41,16 @@ $terraformArgsDefault = @('-auto-approve', '-compact-warnings')
 $terraformArgumentsDestroy = @('-destroy') + $terraformArgsDefault
 $terraformArguments = $terraformArgsDefault + ('-replace=oci_core_instance.compute_instance')
 
+$extraLogName=''
+
 switch ($Action) {
     'preserve' {
         $terraformArguments = $terraformArgsDefault
+        $extraLogName+='.' + $Action
     }
     'destroy' {
         $terraformArguments = $terraformArgumentsDestroy
+        $extraLogName+='.' + $Action
     }
 }
 
@@ -56,13 +60,31 @@ if ($TerraformArguments.Count -gt 0) {
 
 $terraformArguments = @($terraformArguments | Select-Object -Unique)
 
+$stdoutFile = "terraform.stdout.$extraLogName.log"
+$stderrFile = "terraform.stderr.$extraLogName.log"
+
+if ( Test-Path $stdoutFile) {
+    Remove-Item $stdoutFile -Force
+}
+if ( Test-Path $stderrFile) {
+    Remove-Item $stderrFile -Force
+}
+
 Write-Host "terraform " -ForegroundColor DarkYellow -NoNewline
 Write-Host "apply " -ForegroundColor Cyan -NoNewline
 Write-Host "$($terraformArguments -join ' ')" -ForegroundColor DarkRed
-& terraform apply @terraformArguments 1>NUL
+& terraform apply @terraformArguments 2>&1 |
+    ForEach-Object {
+        if ($_ -is [System.Management.Automation.ErrorRecord]) {
+            $theFile = $stderrFile
+        } else {
+            $theFile = $stdoutFile
+        }
+        $_ | Tee-Object -FilePath $theFile -Append
+    }
 $terraformExit = $LASTEXITCODE
 
-if ($terraformExit -eq 0 -and $Action -in @('apply', 'force')) {
+if ($terraformExit -eq 0 -and $Action -in @('apply', 'preserve')) {
     & (Join-Path $PSScriptRoot 'outputs.ps1')
     # & pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'outputs.ps1')
 }

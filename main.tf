@@ -495,6 +495,7 @@ resource "oci_core_instance" "compute_instance" {
   }
 
   metadata = {
+    user_data  = base64encode(local.cloud_init_rendered)
     git_commit = local.git.commit
     git_remote = local.git.remote_url
     git_source = local.git.source
