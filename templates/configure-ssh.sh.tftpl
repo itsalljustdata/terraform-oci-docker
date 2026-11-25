@@ -24,7 +24,9 @@ Port 22
 PORT_EOF
 
 printf 'Port %s\n' "${ssh_public_port}" >> "$${port_drop_in}"
-semanage port -a -t ssh_port_t -p tcp "${ssh_public_port}" || true
+if command -v semanage >/dev/null 2>&1; then
+  semanage port -a -t ssh_port_t -p tcp "${ssh_public_port}" || true
+fi
 %{ endif ~}  
 
 # theFile="/etc/ssh/authorized_keys"

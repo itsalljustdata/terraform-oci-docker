@@ -109,6 +109,7 @@ locals {
     "configure-firewall.sh" = {
       content = templatefile("${path.module}/templates/configure-firewall.sh.tftpl", {
         ssh_public_port = local.ssh.public_port
+        firewall_command = local.ssh.firewall_command
       })
       runcmd_order = 20
     }

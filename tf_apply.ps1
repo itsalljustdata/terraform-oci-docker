@@ -37,7 +37,7 @@ $hostExecutable = if (Get-Command pwsh -ErrorAction SilentlyContinue) {
 
 Set-Location $PSScriptRoot
 
-$terraformArgsDefault = @('-auto-approve', '-compact-warnings')
+$terraformArgsDefault = @('-auto-approve', '-compact-warnings', '-no-color', '-input=false')
 $terraformArgumentsDestroy = @('-destroy') + $terraformArgsDefault
 $terraformArguments = $terraformArgsDefault + ('-replace=oci_core_instance.compute_instance')
 
@@ -60,8 +60,8 @@ if ($TerraformArguments.Count -gt 0) {
 
 $terraformArguments = @($terraformArguments | Select-Object -Unique)
 
-$stdoutFile = "terraform.stdout.$extraLogName.log"
-$stderrFile = "terraform.stderr.$extraLogName.log"
+$stdoutFile = "terraform$extraLogName.stdout.log"
+$stderrFile = "terraform$extraLogName.stderr.log"
 
 if ( Test-Path $stdoutFile) {
     Remove-Item $stdoutFile -Force

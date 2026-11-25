@@ -1,40 +1,42 @@
 #!/bin/bash
 set -eu
 
-
-echo "INFO: Configuring firewall..."
-echo "INFO: Checking for firewall tools..."
-cmdFirewallCmd=`command -v firewall-cmd || echo ""`
-cmdUfw=`command -v ufw || echo ""`
-
-echo "DEBUG: firewall-cmd : $${cmdFirewallCmd}"
-echo "DEBUG: ufw          : $${cmdUfw}"
-
-if [ "$${cmdUfw}" != "" ]; then
-  ufw default deny incoming >/dev/null 2>&1
-  ufw default allow outgoing >/dev/null 2>&1
-  ufw allow OpenSSH >/dev/null 2>&1
-%{ if ssh_public_port != "22" }
-  ufw allow ${ssh_public_port}/tcp >/dev/null 2>&1
-%{ endif }
-  ufw --force enable >/dev/null 2>&1
-  ufw status verbose
-elif [ "$${cmdFirewallCmd}" != "" ]; then
-  %{ if ssh_public_port != "22" }
-  ports=(22 ${ssh_public_port})
-  %{ else }
-  ports=(22)
-  %{ endif }
-  systemctl enable --now firewalld
-  firewall-cmd --add-service=ssh --permanent
-  for port in "$${ports[@]}"; do
-    firewall-cmd --permanent --add-port=$${port}/tcp --quiet
-  done
-  firewall-cmd --reload --quiet
-  firewall-cmd --list-all --quiet
-else
-  echo "ERROR: No supported firewall found (firewall-cmd, ufw), skipping firewall configuration" >&2
-  exit 1
-fi
-echo "INFO: Firewall configuration completed."
+%{ if !firewall_command ~}
+echo "WARNING: Firewall command is not specified."
 exit 0
+%{ else ~}
+%{ if !contains(["ufw", "firewalld"], firewall_command) ~}
+echo "ERROR: Unsupported firewall command: '${firewall_command}'" >&2
+exit 1
+%{ else ~}
+echo "--------------------------------------------------------------------------------------------"
+echo "INFO: ${firewall_command} : Configure firewall with the necessary ports and services"
+echo "--------------------------------------------------------------------------------------------"
+%{ if firewall_command == "ufw" ~}
+ufw default deny incoming >/dev/null 2>&1
+ufw default allow outgoing >/dev/null 2>&1
+ufw allow OpenSSH >/dev/null 2>&1
+%{ if ssh_public_port != "22" ~}
+ufw allow ${ssh_public_port}/tcp >/dev/null 2>&1
+%{ endif ~}
+ufw --force enable >/dev/null 2>&1
+ufw status verbose
+%{ else ~} 
+ports=(22)
+%{ if ssh_public_port != "22" ~}
+ports+=(${ssh_public_port})
+%{ endif ~}
+systemctl enable --now ${firewall_command}
+firewall-cmd --add-service=ssh --permanent
+for port in "$${ports[@]}"; do
+  firewall-cmd --permanent --add-port=$${port}/tcp --quiet
+done
+firewall-cmd --reload --quiet
+firewall-cmd --list-all --quiet
+%{ endif ~}
+echo "--------------------------------------------------------------------------------------------"
+echo "INFO: ${firewall_command} : Firewall configuration completed."
+echo "--------------------------------------------------------------------------------------------"
+exit 0
+%{ endif ~}
+%{ endif ~}

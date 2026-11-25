@@ -49,12 +49,18 @@ variable "ssh" {
     ssh_allowed_ipv6_cidrs = optional(list(string))
     ssh_log_level          = optional(string)
     ssh_aliases            = optional(list(string))
+    firewall_command       = optional(string)
   })
   description = "Logical grouping for SSH access and key configuration. Public SSH access is controlled by ssh_allowed_ipv4_cidrs."
 
   validation {
     condition     = coalesce(var.ssh.public_port, 22) >= 1 && coalesce(var.ssh.public_port, 22) <= 65535 && floor(coalesce(var.ssh.public_port, 22)) == coalesce(var.ssh.public_port, 22)
     error_message = "ssh.public_port must be a valid TCP/UDP port integer between 1 and 65535."
+  }
+
+  validation {
+    condition     = contains(["ufw", "firewalld"], coalesce(var.ssh.firewall_command, "ufw"))
+    error_message = "ssh.firewall_command must be either \"ufw\" or \"firewalld\"."
   }
 }
 
@@ -226,6 +232,7 @@ locals {
     ssh_allowed_ipv6_cidrs = ["::/0"]
     ssh_log_level          = "INFO"
     ssh_aliases            = []
+    firewall_command       = "ufw"
   }
 
   storage_defaults = {
