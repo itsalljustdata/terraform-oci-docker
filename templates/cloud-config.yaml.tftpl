@@ -10,10 +10,10 @@ timezone: ${coalesce(vm_timezone, "UTC")}
 # SSH configuration
 #
 allow_public_ssh_keys: true
-ssh_pwauth: false
+ssh_pwauth: true
 ssh_quiet_keygen: true
-no_ssh_fingerprints: true
-authkey_hash: sha512
+# no_ssh_fingerprints: true
+# authkey_hash: sha512
 %{ if length(vm_ssh_authorized_keys) > 0 ~}
 ssh_authorized_keys:
 %{ for key in vm_ssh_authorized_keys ~}
@@ -40,6 +40,41 @@ packages:
 %{ endfor ~}
 %{ endif ~}
 #
+# User configuration
+#
+disable_root: ${!contains(theUsers, "root")}
+%{ if length(theUsers) == 0 ~}
+# users:
+#   No users specified
+%{ else ~}
+users:
+%{ for user in theUsers ~}
+  - name: ${user}
+%{ if user != "root" && contains(packages, "zsh") ~}
+    shell: /usr/bin/zsh # Use zsh as default shell
+%{ else ~}
+    shell: /bin/bash
+%{ endif ~}
+%{ if user == "root" ~}
+    ssh_redirect_user: false
+%{ else ~}
+    sudo:  "ALL=(ALL) NOPASSWD:ALL"
+%{ endif ~}
+    lock_passwd: false
+%{ if vm_password != "" ~}
+    plain_text_passwd: "${vm_password}"
+%{ else ~}
+    hashed_passwd: "${vm_password_hash}"
+%{ endif ~}
+%{ if length(vm_ssh_authorized_keys) > 0 ~}
+    ssh_authorized_keys:
+%{ for key in vm_ssh_authorized_keys ~}
+      - ${key}
+%{ endfor ~}
+%{ endif ~}
+%{ endfor ~}
+%{ endif ~}
+#
 # Writing cloud init files
 #
 %{ if length(cloud_init_files) == 0 ~}
@@ -63,41 +98,6 @@ write_files:
 %{ else ~}
     content: |
       ${replace(trimspace(file.content), "\n", "\n      ")}
-%{ endif ~}
-%{ endfor ~}
-%{ endif ~}
-#
-# User configuration
-#
-disable_root: ${!contains(theUsers, "root")}
-%{ if length(theUsers) == 0 ~}
-# users:
-#   No users specified
-%{ else ~}
-users:
-%{ for user in theUsers ~}
-  - name: ${user}
-%{ if user != "root" && contains(packages, "zsh") ~}
-    shell: /usr/bin/zsh # Use zsh as default shell
-%{ else ~}
-    shell: /bin/bash
-%{ endif ~}
-%{ if user == "root" ~}
-    ssh_redirect_user: false
-%{ else ~}
-    sudo:  "ALL=(ALL) NOPASSWD:ALL"
-%{ endif ~}
-    lock_passwd: false
-%{ if vm_password != "" ~}
-    passwd: "${vm_password}"
-%{ else ~}
-    hashed_passwd: "${vm_password_hash}"
-%{ endif ~}
-%{ if length(vm_ssh_authorized_keys) > 0 ~}
-    ssh_authorized_keys:
-%{ for key in vm_ssh_authorized_keys ~}
-      - ${key}
-%{ endfor ~}
 %{ endif ~}
 %{ endfor ~}
 %{ endif ~}
