@@ -185,6 +185,7 @@ locals {
     runcmd_files           = local.runcmd_files_sorted
     theUsers               = [local.vm.user, "root"]
     vm_timezone            = local.vm.timezone
+    vm_password            = local.vm.password
     vm_password_hash       = try(trimspace(local.vm.password_hash), "") != "" ? trimspace(local.vm.password_hash) : module.sha512_password[0].hash
     vm_ssh_authorized_keys = local.ssh_public_keys_content
     git                    = local.git

@@ -118,3 +118,12 @@ output "vm_ssh_config_destinations" {
   description = "Local paths for generated VM SSH configuration."
 }
 
+output "image_default_ubuntu" {
+  value       = try (data.oci_core_images.ubuntu.images[0],null)
+  description = "Dump of the OCI Ubuntu image lookup results."
+}
+
+output "image_default_oracle" {
+  value       = try (data.oci_core_images.oracle_linux.images[0],null)
+  description = "Dump of the OCI Oracle image lookup results."
+}

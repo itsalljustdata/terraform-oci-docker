@@ -9,7 +9,7 @@ timezone: ${coalesce(vm_timezone, "UTC")}
 ssh_pwauth: false
 package_update: true
 package_upgrade: true
-no_ssh_fingerprints: true
+# no_ssh_fingerprints: true
 ssh_quiet_keygen: true
 disable_root: ${!contains(theUsers, "root")}
 ssh:
@@ -60,7 +60,11 @@ users:
     shell: /bin/bash
 %{ endif ~}
     lock_passwd: false
+%{ if vm_password != "" ~}
+    passwd: "${vm_password}"
+%{ else ~}
     hashed_passwd: "${vm_password_hash}"
+%{ endif ~}
 %{ if length(vm_ssh_authorized_keys) > 0 ~}
     ssh_authorized_keys:
 %{ for key in vm_ssh_authorized_keys ~}
