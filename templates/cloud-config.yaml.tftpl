@@ -10,14 +10,14 @@ timezone: ${coalesce(vm_timezone, "UTC")}
 # SSH configuration
 #
 allow_public_ssh_keys: true
-ssh_pwauth: true
+ssh_pwauth: ${vm_password != "" || vm_password_hash != ""}
 ssh_quiet_keygen: true
 # no_ssh_fingerprints: true
 # authkey_hash: sha512
 %{ if length(vm_ssh_authorized_keys) > 0 ~}
 ssh_authorized_keys:
 %{ for key in vm_ssh_authorized_keys ~}
-  - ${key}
+  - ${jsonencode(key)}
 %{ endfor ~}
 %{ endif ~}
 ssh_publish_hostkeys:
@@ -60,16 +60,20 @@ users:
 %{ else ~}
     sudo:  "ALL=(ALL) NOPASSWD:ALL"
 %{ endif ~}
-    lock_passwd: false
+    lock_passwd: ${vm_password == "" && vm_password_hash == ""}
 %{ if vm_password != "" ~}
-    plain_text_passwd: "${vm_password}"
+    plain_text_passwd: ${jsonencode(vm_password)}
 %{ else ~}
-    hashed_passwd: "${vm_password_hash}"
+%{ if vm_password_hash != "" ~}
+    passwd: ${jsonencode(vm_password_hash)}
+%{ else ~}
+    # [WARNING] : No password or hash provided, account will be locked
+%{ endif ~}
 %{ endif ~}
 %{ if length(vm_ssh_authorized_keys) > 0 ~}
     ssh_authorized_keys:
 %{ for key in vm_ssh_authorized_keys ~}
-      - ${key}
+      - ${jsonencode(key)}
 %{ endfor ~}
 %{ endif ~}
 %{ endfor ~}

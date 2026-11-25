@@ -16,14 +16,13 @@ Usage:
   .\tf_apply.ps1 [action] [terraform arguments]
 
 Actions:
-  apply    Run terraform apply -auto-approve -compact-warnings
-  force    Apply while replacing oci_core_instance.compute_instance
+  apply    Run terraform apply -auto-approve -compact-warnings -replace=oci_core_instance.compute_instance
+  preserve  Run terraform apply -auto-approve -compact-warnings without replacing oci_core_instance.compute_instance
   destroy  Run terraform apply -destroy -auto-approve
 
 Examples:
   .\tf_apply.ps1
   .\tf_apply.ps1 apply
-  .\tf_apply.ps1 force
   .\tf_apply.ps1 destroy
   .\tf_apply.ps1 -Help
 '@ | Write-Host
@@ -38,14 +37,16 @@ $hostExecutable = if (Get-Command pwsh -ErrorAction SilentlyContinue) {
 
 Set-Location $PSScriptRoot
 
-$terraformArguments = @('-auto-approve', '-compact-warnings')
+$terraformArgsDefault = @('-auto-approve', '-compact-warnings')
+$terraformArgumentsDestroy = @('-destroy') + $terraformArgsDefault
+$terraformArguments = $terraformArgsDefault + ('-replace=oci_core_instance.compute_instance')
 
 switch ($Action) {
-    'force' {
-        $terraformArguments += '-replace=oci_core_instance.compute_instance'
+    'preserve' {
+        $terraformArguments = $terraformArgsDefault
     }
     'destroy' {
-        $terraformArguments = @('-destroy', '-auto-approve')
+        $terraformArguments = $terraformArgumentsDestroy
     }
 }
 

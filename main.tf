@@ -67,37 +67,37 @@ locals {
         vm_name       = local.this_vm_name
       })
     }
-    "99-wireguard-forward.conf" = {
-      content = templatefile("${path.module}/templates/99-wireguard-forward.conf.tftpl", {
-        enabled = local.wireguard.enabled
-      })
-      path        = "/etc/sysctl.d"
-      permissions = "0644"
-    }
-    "wg0.conf" = {
-      content = templatefile("${path.module}/templates/wg0.conf.tftpl", {
-        enabled = local.wireguard.enabled
-        #public_key = local.wireguard_public_key
-      })
-      path        = local.wireguard_dir
-      permissions = "0600"
-    }
-    "wg_generate_keys.sh" = {
-      content = templatefile("${path.module}/templates/wg_generate_keys.sh.tftpl", {
-        enabled  = local.wireguard.enabled
-        base_dir = local.wireguard_dir
-      })
-      permissions  = "0755"
-      runcmd_order = 90
-    }
-    "override.conf" = {
-      content = templatefile("${path.module}/templates/wg_override.conf.tftpl", {
-        enabled  = local.wireguard.enabled
-        base_dir = local.wireguard_dir
-      })
-      path        = "/etc/systemd/system/wg-quick@wg0.service.d"
-      permissions = "0600"
-    }
+    # "99-wireguard-forward.conf" = {
+    #   content = templatefile("${path.module}/templates/99-wireguard-forward.conf.tftpl", {
+    #     enabled = local.wireguard.enabled
+    #   })
+    #   path        = "/etc/sysctl.d"
+    #   permissions = "0644"
+    # }
+    # "wg0.conf" = {
+    #   content = templatefile("${path.module}/templates/wg0.conf.tftpl", {
+    #     enabled = local.wireguard.enabled
+    #     #public_key = local.wireguard_public_key
+    #   })
+    #   path        = local.wireguard_dir
+    #   permissions = "0600"
+    # }
+    # "wg_generate_keys.sh" = {
+    #   content = templatefile("${path.module}/templates/wg_generate_keys.sh.tftpl", {
+    #     enabled  = local.wireguard.enabled
+    #     base_dir = local.wireguard_dir
+    #   })
+    #   permissions  = "0755"
+    #   runcmd_order = 90
+    # }
+    # "override.conf" = {
+    #   content = templatefile("${path.module}/templates/wg_override.conf.tftpl", {
+    #     enabled  = local.wireguard.enabled
+    #     base_dir = local.wireguard_dir
+    #   })
+    #   path        = "/etc/systemd/system/wg-quick@wg0.service.d"
+    #   permissions = "0600"
+    # }
     "configure-ssh.sh" = {
       content = templatefile("${path.module}/templates/configure-ssh.sh.tftpl", {
         ssh_public_port = local.ssh.public_port
