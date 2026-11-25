@@ -66,15 +66,11 @@ disable_root: ${!contains(theUsers, "root")}
 users:
 %{ for user in theUsers ~}
   - name: ${user}
-%{ if user != "root" && contains(packages, "zsh") ~}
-    shell: /usr/bin/zsh # Use zsh as default shell
-%{ else ~}
     shell: /bin/bash
-%{ endif ~}
 %{ if user == "root" ~}
     ssh_redirect_user: false
 %{ else ~}
-    sudo:  "ALL=(ALL) NOPASSWD:ALL"
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
 %{ endif ~}
     lock_passwd: ${vm_password == "" && vm_password_hash == ""}
 %{ if vm_password != "" ~}
