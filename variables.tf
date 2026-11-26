@@ -375,7 +375,12 @@ locals {
     ] : null
     deploy_key = local.do_read_key ? trimspace(file(pathexpand(local.ansible_tmp.deploy_key_path))) : null
   })
-  ansible_repo_hostname = local.ansible.repository != null && startswith(local.ansible.repository, "git@") ? regexreplace(local.ansible.repository, "^git@([^:]+):.*$", "$1") : null
+  ansible_repo_hostname = (
+        local.ansible.repository != null &&
+        startswith(local.ansible.repository, "git@")
+        ? try(regex("^git@([^:]+):", local.ansible.repository)[0], null)
+        : null
+      )
 
   vm_tmp = merge(local.vm_defaults, { for k, v in try(var.vm, {}) : k => v if v != null })
 
