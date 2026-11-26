@@ -178,7 +178,8 @@ variable "ansible" {
   validation {
     condition = (
       (trimspace(coalesce(var.ansible.repository, "")) != "") ==
-      (length(coalesce(var.ansible.playbooks, [])) > 0)
+      (length(coalesce(var.ansible.playbooks, [])) > 0) &&
+      (length(coalesce(var.ansible.playbooks, [])) == 0 || alltrue([for pb in coalesce(var.ansible.playbooks, []) : trimspace(pb.name) != ""]))
     )
     error_message = "When ansible.repository is set, ansible.playbooks must contain at least one entry; when repository is unset, playbooks must be empty or null."
   }
@@ -186,9 +187,9 @@ variable "ansible" {
   validation {
     condition = (
       length([
-        for name in coalesce(var.ansible.playbooks, []) :
-        name
-        if trimspace(name) != ""
+        for pb in coalesce(var.ansible.playbooks, []) :
+        pb.name
+        if trimspace(pb.name) != ""
       ]) == length(coalesce(var.ansible.playbooks, []))
     )
     error_message = "ansible.playbooks cannot contain blank or whitespace-only entries."
@@ -362,7 +363,15 @@ locals {
     repository = local.ansible_tmp.repository != null ? trimspace(local.ansible_tmp.repository) : null
     repository = local.ansible_tmp.repository != null ? trimspace(local.ansible_tmp.repository) : null
     playbooks = local.ansible_tmp.playbooks != null ? [
-      for name in local.ansible_tmp.playbooks : trimspace(coalesce(name, ""))
+      for pb in local.ansible_tmp.playbooks : {
+        name = trimspace(coalesce(pb.name, ""))
+        vars = pb.vars != null ? [
+          for v in pb.vars : {
+            key = trimspace(coalesce(v.key, ""))
+            value = trimspace(coalesce(v.value, ""))
+          }
+        ] : []
+      }
     ] : null
     deploy_key = local.do_read_key ? trimspace(file(pathexpand(local.ansible_tmp.deploy_key_path))) : null
   })

@@ -90,7 +90,7 @@ users:
 %{ endif ~}
 %{ endfor ~}
 %{ endif ~}
-%{ if ansible.enabled && length(ansible.playbook_names) > 0 ~}
+%{ if ansible.enabled && length(ansible.playbooks) > 0 ~}
 #
 # Ansible configuration
 #
@@ -113,6 +113,11 @@ ansible:
 %{ endfor ~}
 %{ endif ~}
 %{ endfor ~}
+%{ else }
+#
+# No Ansible configuration
+#
+%{ endif ~}
 #
 # Writing cloud init files
 #
