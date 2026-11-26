@@ -80,16 +80,7 @@ locals {
     } : {}
   )
 
-  vm_ssh_config_files = merge(
-    {
-      "config" = {
-        content     = "Include './config.d/*'"
-        path        = "/home/${local.vm.user}/.ssh"
-        owner       = "${local.vm.user}:${local.vm.user}"
-        permissions = "0600"
-      }
-    },
-    local.ansible_repo_hostname_safe != "" ? {
+  vm_ssh_config_files = local.ansible_repo_hostname_safe == "" ? {} :{
       "${local.ansible_repo_hostname_safe}.config.ansible" = {
         content = templatefile("${path.module}/templates/ansible.config.tftpl", {
           ansibleHostName = local.ansible_repo_hostname_safe
@@ -103,11 +94,10 @@ locals {
         path        = "/home/${local.vm.user}/.ssh"
         owner       = "${local.vm.user}:${local.vm.user}"
         permissions = "0600"
-      }
-    } : {}
-  )
+      }}
 
-  cloud_init_files = {
+  cloud_init_files = merge(
+    {
     # "99-wireguard-forward.conf" = {
     #   content = templatefile("${path.module}/templates/99-wireguard-forward.conf.tftpl", {
     #     enabled = local.wireguard.enabled
@@ -139,6 +129,12 @@ locals {
     #   path        = "/etc/systemd/system/wg-quick@wg0.service.d"
     #   permissions = "0600"
     # }
+    "config" = {
+        content     = "Include './config.d/*'"
+        path        = "/home/${local.vm.user}/.ssh"
+        owner       = "${local.vm.user}:${local.vm.user}"
+        permissions = "0600"
+      }
     "configure-ssh.sh" = {
       content = templatefile("${path.module}/templates/configure-ssh.sh.tftpl", {
         ssh_public_port = local.ssh.public_port
@@ -170,14 +166,14 @@ locals {
       })
       runcmd_order = 50
     }
-    "configure-cloudflared.sh" = {
-      content = templatefile("${path.module}/templates/cloudflared-setup.sh.tftpl", {
-        enabled      = local.cloudflared.enabled
-        tunnel_token = local.cloudflared.tunnel_token
-      })
-      runcmd_order = 60
-      name         = "cloudflared-setup.sh"
-    }
+    # "configure-cloudflared.sh" = {
+    #   content = templatefile("${path.module}/templates/cloudflared-setup.sh.tftpl", {
+    #     enabled      = local.cloudflared.enabled
+    #     tunnel_token = local.cloudflared.tunnel_token
+    #   })
+    #   runcmd_order = 60
+    #   name         = "cloudflared-setup.sh"
+    # }
     "cloudflare-warp-setup.sh" = {
       content = templatefile("${path.module}/templates/cloudflare-warp-setup.sh.tftpl", {
         enabled      = local.warp.enabled
@@ -192,7 +188,9 @@ locals {
       })
       runcmd_order = 80
     }
-  }
+  },
+    local.ansible.enabled ? local.vm_ssh_config_files : {}
+  )
 
   runcmd_files = sort([
     for name, file in local.cloud_init_files :
@@ -257,9 +255,6 @@ locals {
   query = {
     yaml = local.cloud_init_rendered
   }
-
-
-
 }
 
 ## ==========================================
