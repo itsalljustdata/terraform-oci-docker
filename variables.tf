@@ -164,7 +164,13 @@ variable "ansible" {
     enabled           = optional(bool)
     deploy_key_path = optional(string)
     repository        = optional(string)
-    playbook_names    = optional(list(string))
+    playbooks    = optional(list(object({
+      name = string
+      vars = optional(list(object({
+        key   = string
+        value = string
+      })))
+    })))
     deploy_key = optional(string)
   })
   description = "Optional Ansible settings for the VM."
@@ -172,20 +178,20 @@ variable "ansible" {
   validation {
     condition = (
       (trimspace(coalesce(var.ansible.repository, "")) != "") ==
-      (length(coalesce(var.ansible.playbook_names, [])) > 0)
+      (length(coalesce(var.ansible.playbooks, [])) > 0)
     )
-    error_message = "When ansible.repository is set, ansible.playbook_names must contain at least one entry; when repository is unset, playbook_names must be empty or null."
+    error_message = "When ansible.repository is set, ansible.playbooks must contain at least one entry; when repository is unset, playbooks must be empty or null."
   }
 
   validation {
     condition = (
       length([
-        for name in coalesce(var.ansible.playbook_names, []) :
+        for name in coalesce(var.ansible.playbooks, []) :
         name
         if trimspace(name) != ""
-      ]) == length(coalesce(var.ansible.playbook_names, []))
+      ]) == length(coalesce(var.ansible.playbooks, []))
     )
-    error_message = "ansible.playbook_names cannot contain blank or whitespace-only entries."
+    error_message = "ansible.playbooks cannot contain blank or whitespace-only entries."
   }
 }
 variable "warp" {
@@ -304,7 +310,8 @@ locals {
     enabled          = false
     deploy_key_path = null
     repository       = null
-    playbook_names   = null
+    playbooks   = null
+    playbook_extras = null
     deploy_key      = null
   }
 
@@ -354,8 +361,8 @@ locals {
   ansible = merge(local.ansible_tmp, {
     repository = local.ansible_tmp.repository != null ? trimspace(local.ansible_tmp.repository) : null
     repository = local.ansible_tmp.repository != null ? trimspace(local.ansible_tmp.repository) : null
-    playbook_names = local.ansible_tmp.playbook_names != null ? [
-      for name in local.ansible_tmp.playbook_names : trimspace(coalesce(name, ""))
+    playbooks = local.ansible_tmp.playbooks != null ? [
+      for name in local.ansible_tmp.playbooks : trimspace(coalesce(name, ""))
     ] : null
     deploy_key = local.do_read_key ? trimspace(file(pathexpand(local.ansible_tmp.deploy_key_path))) : null
   })

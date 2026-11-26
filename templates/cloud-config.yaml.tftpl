@@ -91,6 +91,9 @@ users:
 %{ endfor ~}
 %{ endif ~}
 %{ if ansible.enabled && length(ansible.playbook_names) > 0 ~}
+#
+# Ansible configuration
+#
 ansible:
   package_name: ansible-core
   install_method: distro
@@ -100,11 +103,16 @@ ansible:
       - path: /home/${vm_user}/ansible-repo
         source: ${ansible.repository}
     run_ansible:
-%{for playbook in ansible.playbook_names ~}
+%{for playbook in ansible.playbooks ~}
       - playbook_dir: /home/${vm_user}/ansible-repo
-        playbook_name: ${playbook}
+        playbook_name: ${playbook.name}
+%{ if length(playbook.vars) > 0 ~}
+        playbook_opts: >-
+%{ for var in playbook.vars ~}
+          -- extra_vars '${var.key}=${jsonencode(var.value)}'
 %{ endfor ~}
 %{ endif ~}
+%{ endfor ~}
 #
 # Writing cloud init files
 #
