@@ -113,6 +113,8 @@ elif [ -L "$${homeGit}" ]; then
 else
     echo "[INFO] Creating symlink from $${gitDir} to $${homeGit}"
     ln -s "$${gitDir}" "$${homeGit}" || true
+    chown "${vm_user}:${vm_user}" "$${homeGit}" || true
+    chmod 775 "$${homeGit}" || true
 fi
 
 docker --version

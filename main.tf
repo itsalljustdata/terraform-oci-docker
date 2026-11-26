@@ -53,20 +53,61 @@ locals {
     public_IPv6      = local.public_IPv6
     ssh_port         = local.ssh.public_port
     git              = local.git
+    ansible          = local.ansible
   })
 
-  vm_ssh_config_destinations = {
-    user_config = pathexpand("~/.ssh/config.d/${local.resource_names.hostname_label}")
-    output_file = "${path.module}/output/${local.this_vm_name}/ssh-config"
-  }
+  ansible_deploy_key = (
+                        local.ansible.enabled &&
+                        local.ansible.deploy_key_path != null &&
+                        trimspace(local.ansible.deploy_key_path) != ""
+                        ? trimspace(file(pathexpand(local.ansible.deploy_key_path)))
+                        : ""
+                        )
+
+  ansible_deploy_key_filename = (
+    local.ansible.deploy_key_path != null && trimspace(local.ansible.deploy_key_path) != ""
+    ? split("/", trimspace(local.ansible.deploy_key_path))[length(split("/", trimspace(local.ansible.deploy_key_path))) - 1]
+    : ""
+  )
+
+  vm_ssh_config_destinations = merge(
+    {
+      user_config = pathexpand("~/.ssh/config.d/${local.resource_names.hostname_label}")
+      output_file = "${path.module}/output/${local.this_vm_name}/ssh-config"
+    },
+    local.ansible_repo_hostname_safe != "" ? {
+      ansible_config = pathexpand("~/.ssh/config.d/${local.ansible_repo_hostname_safe}.config.ansible")
+    } : {}
+  )
+
+  vm_ssh_config_files = merge(
+    {
+      "config" = {
+        content     = "Include './config.d/*'"
+        path        = "/home/${local.vm.user}/.ssh"
+        owner       = "${local.vm.user}:${local.vm.user}"
+        permissions = "0600"
+      }
+    },
+    local.ansible_repo_hostname_safe != "" ? {
+      "${local.ansible_repo_hostname_safe}.config.ansible" = {
+        content = templatefile("${path.module}/templates/ansible.config.tftpl", {
+          ansibleHostName = local.ansible_repo_hostname_safe
+        })
+        path        = "/home/${local.vm.user}/.ssh/config.d"
+        owner       = "${local.vm.user}:${local.vm.user}"
+        permissions = "0600"
+      }
+      "ansible_deploy_key" = {
+        content     = jsonencode(local.ansible_deploy_key)
+        path        = "/home/${local.vm.user}/.ssh"
+        owner       = "${local.vm.user}:${local.vm.user}"
+        permissions = "0600"
+      }
+    } : {}
+  )
 
   cloud_init_files = {
-    # "mount-block-volumes.sh" = {
-    #   content = templatefile("${path.module}/templates/mount-block-volumes.sh.tftpl", {
-    #     mount_entries = local.storage.block_vol_mounts
-    #     vm_name       = local.this_vm_name
-    #   })
-    # }
     # "99-wireguard-forward.conf" = {
     #   content = templatefile("${path.module}/templates/99-wireguard-forward.conf.tftpl", {
     #     enabled = local.wireguard.enabled
@@ -113,19 +154,6 @@ locals {
       })
       runcmd_order = 20
     }
-    # "wait-for-block-volume.sh" = {
-    #   content = templatefile("${path.module}/templates/wait-for-block-volume.sh.tftpl", {})
-    #   name    = "wait-for-block-volume.sh"
-    # }
-    # "block-volume-mount.service" = {
-    #   path        = "/etc/systemd/system"
-    #   permissions = "0644"
-    #   content     = templatefile("${path.module}/templates/block-volume-mount.service.tftpl", {})
-    # }
-    # "enable-block-volume-service.sh" = {
-    #   content      = templatefile("${path.module}/templates/enable-block-volume-service.sh.tftpl", {})
-    #   runcmd_order = 30
-    # }
     "netbird-setup.sh" = {
       content = templatefile("${path.module}/templates/netbird-setup.sh.tftpl", {
         enabled     = local.netbird.enabled
@@ -185,11 +213,13 @@ locals {
     }
     runcmd_files           = local.runcmd_files_sorted
     theUsers               = [local.vm.user, "root"]
+    vm_user                = local.vm.user
     vm_timezone            = local.vm.timezone
     vm_password            = local.vm.password # Pass this as null (if you want to set with the hashed password instead)
     vm_password_hash       = try(trimspace(local.vm.password_hash), "") != "" ? trimspace(local.vm.password_hash) : module.sha512_password[0].hash
     vm_ssh_authorized_keys = local.ssh_public_keys_content
     git                    = local.git
+    ansible                = local.ansible
     encode_files           = var.encode_files_in_cloud_init
     block_vols             = local.block_mounts
   })
@@ -540,12 +570,6 @@ resource "oci_core_instance" "compute_instance" {
     recovery_action = "RESTORE_INSTANCE"
   }
 
-  # freeform_tags = merge(
-  #   {},
-  #   local.wireguard.enabled ? {
-  #     "wireguard_public_key" = local.wireguard_public_key
-  #   } : {}
-  # )
 }
 
 resource "local_file" "vm_output_files" {
@@ -581,22 +605,13 @@ module "sha512_password" {
   rounds   = 4096
 }
 
-# module "wireguard_keypair" {
-#   count       = local.wireguard.enabled && try(trimspace(local.wireguard.public_key), "") == "" ? 1 : 0
-#   source      = "./modules/wireguard-keypair"
-#   output_file = "${path.module}/wireguard-keypair.json"
-# }
 
 locals {
-  # wireguard_public_key = try(trimspace(local.wireguard.public_key), "") != "" ? try(trimspace(local.wireguard.public_key), "") : (
-  #   local.wireguard.enabled ? module.wireguard_keypair[0].public_key : ""
-  # )
-
-  # wireguard_private_key = local.wireguard.enabled && try(trimspace(local.wireguard.public_key), "") == "" ? module.wireguard_keypair[0].private_key : ""
-
   wireguard_dir = length(local.storage.block_vol_mounts) > 0 ? join("/", [
     local.storage.block_vol_mounts[0].path,
     local.this_vm_name,
     "wireguard"
   ]) : "/etc/wireguard"
+
+  ansible_repo_hostname_safe = try(trimspace(local.ansible_repo_hostname), "")
 }

@@ -158,6 +158,36 @@ variable "cloudflared" {
     error_message = "cloudflared.tunnel_token is required when cloudflared.enabled is true."
   }
 }
+
+variable "ansible" {
+  type = object({
+    enabled           = optional(bool)
+    deploy_key_path = optional(string)
+    repository        = optional(string)
+    playbook_names    = optional(list(string))
+    deploy_key = optional(string)
+  })
+  description = "Optional Ansible settings for the VM."
+
+  validation {
+    condition = (
+      (trimspace(coalesce(var.ansible.repository, "")) != "") ==
+      (length(coalesce(var.ansible.playbook_names, [])) > 0)
+    )
+    error_message = "When ansible.repository is set, ansible.playbook_names must contain at least one entry; when repository is unset, playbook_names must be empty or null."
+  }
+
+  validation {
+    condition = (
+      length([
+        for name in coalesce(var.ansible.playbook_names, []) :
+        name
+        if trimspace(name) != ""
+      ]) == length(coalesce(var.ansible.playbook_names, []))
+    )
+    error_message = "ansible.playbook_names cannot contain blank or whitespace-only entries."
+  }
+}
 variable "warp" {
   type = object({
     enabled      = optional(bool)
@@ -270,6 +300,13 @@ locals {
     enabled      = false
     tunnel_token = ""
   }
+  ansible_defaults = {
+    enabled          = false
+    deploy_key_path = null
+    repository       = null
+    playbook_names   = null
+    deploy_key      = null
+  }
 
   packages_wg = local.wireguard.enabled ? ["wireguard-tools", "iptables"] : []
 
@@ -312,6 +349,17 @@ locals {
   cloudflared = merge(local.cloudflared_defaults, { for k, v in try(var.cloudflared, {}) : k => v if v != null })
   warp        = merge(local.warp_defaults, { for k, v in try(var.warp, {}) : k => v if v != null })
   wireguard   = merge(local.wireguard_defaults, { for k, v in try(var.wireguard, {}) : k => v if v != null })
+  ansible_tmp = merge(local.ansible_defaults, { for k, v in try(var.ansible, {}) : k => v if v != null })
+  do_read_key = local.ansible_tmp.deploy_key_path != null && trimspace(local.ansible_tmp.deploy_key_path) != ""
+  ansible = merge(local.ansible_tmp, {
+    repository = local.ansible_tmp.repository != null ? trimspace(local.ansible_tmp.repository) : null
+    repository = local.ansible_tmp.repository != null ? trimspace(local.ansible_tmp.repository) : null
+    playbook_names = local.ansible_tmp.playbook_names != null ? [
+      for name in local.ansible_tmp.playbook_names : trimspace(coalesce(name, ""))
+    ] : null
+    deploy_key = local.do_read_key ? trimspace(file(pathexpand(local.ansible_tmp.deploy_key_path))) : null
+  })
+  ansible_repo_hostname = local.ansible.repository != null && startswith(local.ansible.repository, "git@") ? regexreplace(local.ansible.repository, "^git@([^:]+):.*$", "$1") : null
 
   vm_tmp = merge(local.vm_defaults, { for k, v in try(var.vm, {}) : k => v if v != null })
 
@@ -346,9 +394,7 @@ locals {
     for image in local.images_all : image
     if image.operating_system == "Canonical Ubuntu"
   ]
-  # versions_ubuntu_all = reverse(sort(distinct([
-  #   for image in local.ubuntu_images_all : image.operating_system_version
-  # ])))
+  # version
   versions_ubuntu_all = reverse(sort(distinct([
     for image in local.ubuntu_images_all :
     tonumber(split(" ", image.operating_system_version)[0])
@@ -358,9 +404,6 @@ locals {
     for image in local.ubuntu_images_all : image
     if strcontains(image.operating_system_version, "Minimal")
   ]
-  # versions_ubuntu_minimal = reverse(sort(distinct([
-  #   for image in local.ubuntu_images_minimal_all : image.operating_system_version
-  # ])))
   versions_ubuntu_minimal = reverse(sort(distinct([
     for image in local.ubuntu_images_minimal_all :
     tonumber(split(" ", image.operating_system_version)[0])
