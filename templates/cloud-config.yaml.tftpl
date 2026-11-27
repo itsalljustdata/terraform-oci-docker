@@ -108,10 +108,7 @@ ansible:
         playbook_name: ${playbook.name}
 ##{# extra_vars: ${jsonencode(jsonencode({ for var in playbook.vars : var.key => var.value }))} #}
 %{ if length(playbook.vars) > 0 ~}
-        extra_vars:
-${ for var in playbook.vars ~}
-          - ${var.key}: ${jsonencode(var.value)}
-%{ endfor ~}
+        extra_vars: '${jsonencode(playbook.vars)}'
 %{ endif ~}
 %{ endfor ~}
 %{ else }
