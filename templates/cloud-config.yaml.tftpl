@@ -118,7 +118,7 @@ write_files:
   # No Ansible playbooks specified
 %{ else ~}
 %{for playbook in ansible.playbooks ~}
-  - path: /home/${vm_user}/${ansible_repo_name}/${playbook.name}.json
+  - path: /home/${vm_user}/cloud-init-playbooks/${playbook.name}.json
     permissions: '0600'
     owner: ${vm_user}:${vm_user}
     defer: true
@@ -136,7 +136,7 @@ write_files:
 %{ endif ~}
 %{ endfor ~}
 %{ endif ~}
-  - path: /home/${vm_user}/${ansible_repo_name}/cloud-init-playbooks.sh
+  - path: /home/${vm_user}/cloud-init-playbooks/cloud-init-playbooks.sh
     permissions: '0755'
     owner: ${vm_user}:${vm_user}
     defer: true
@@ -144,7 +144,7 @@ write_files:
       #!/bin/bash
 %{for playbook in ansible.playbooks ~}
       cd "`dirname $0`"
-      ansible-playbook "${playbook.name}" -e @"./${playbook.name}.json"
+      ansible-playbook "/home/${vm_user}/${ansible_repo_name}/${playbook.name}" -e @"./${playbook.name}.json" | tee "./${playbook.name}.log"
 %{ endfor ~}
 %{ endif ~}
 %{ if length(cloud_init_files) == 0 ~}
@@ -184,7 +184,7 @@ runcmd:
   - if [ -f "/home/${vm_user}/${ansible_repo_name}/requirements.yml" ]; then \
       runuser -u ${vm_user} -- ansible-galaxy install -r "/home/${vm_user}/${ansible_repo_name}/requirements.yml" \
     fi
-  - /home/${vm_user}/${ansible_repo_name}/cloud-init-playbooks.sh
+  - /home/${vm_user}/cloud-init-playbooks/cloud-init-playbooks.sh
 %{ if length(runcmd_files) == 0 ~}
   # No runcmd files specified
 %{ else ~}
