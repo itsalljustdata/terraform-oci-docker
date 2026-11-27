@@ -133,41 +133,41 @@ variable "storage" {
   description = "Logical grouping for OCI block volume attachments and mount configuration. Each entry must include the attached device path that the instance will mount."
 }
 
-variable "netbird" {
-  type = object({
-    enabled        = optional(bool)
-    setup_key      = optional(string)
-    management_url = optional(string)
-    extra_flags    = optional(list(string))
-  })
-  description = "Optional NetBird bootstrap settings. When enabled, a bootstrap environment file is written for the VM to use during startup."
+# variable "netbird" {
+#   type = object({
+#     enabled        = optional(bool)
+#     setup_key      = optional(string)
+#     management_url = optional(string)
+#     extra_flags    = optional(list(string))
+#   })
+#   description = "Optional NetBird bootstrap settings. When enabled, a bootstrap environment file is written for the VM to use during startup."
 
-  validation {
-    condition     = !(coalesce(var.netbird.enabled, false)) || trimspace(coalesce(var.netbird.setup_key, "")) != ""
-    error_message = "netbird.setup_key is required when netbird.enabled is true."
-  }
-}
+#   validation {
+#     condition     = !(coalesce(var.netbird.enabled, false)) || trimspace(coalesce(var.netbird.setup_key, "")) != ""
+#     error_message = "netbird.setup_key is required when netbird.enabled is true."
+#   }
+# }
 
 
-variable "docker" {
-  type = object({
-    enabled = optional(bool)
-  })
-  description = "Optional Docker installation settings for the VM."
-}
+# variable "docker" {
+#   type = object({
+#     enabled = optional(bool)
+#   })
+#   description = "Optional Docker installation settings for the VM."
+# }
 
-variable "cloudflared" {
-  type = object({
-    enabled      = optional(bool)
-    tunnel_token = optional(string)
-  })
-  description = "Optional Cloudflared settings for the VM."
+# variable "cloudflared" {
+#   type = object({
+#     enabled      = optional(bool)
+#     tunnel_token = optional(string)
+#   })
+#   description = "Optional Cloudflared settings for the VM."
 
-  validation {
-    condition     = !(coalesce(var.cloudflared.enabled, false)) || trimspace(coalesce(var.cloudflared.tunnel_token, "")) != ""
-    error_message = "cloudflared.tunnel_token is required when cloudflared.enabled is true."
-  }
-}
+#   validation {
+#     condition     = !(coalesce(var.cloudflared.enabled, false)) || trimspace(coalesce(var.cloudflared.tunnel_token, "")) != ""
+#     error_message = "cloudflared.tunnel_token is required when cloudflared.enabled is true."
+#   }
+# }
 
 variable "ansible" {
   type = object({
@@ -286,12 +286,12 @@ locals {
     block_vol_mounts = []
   }
 
-  netbird_defaults = {
-    enabled        = false
-    setup_key      = ""
-    management_url = "" # https://api.netbird.io
-    extra_flags    = []
-  }
+  # netbird_defaults = {
+  #   enabled        = false
+  #   setup_key      = ""
+  #   management_url = "" # https://api.netbird.io
+  #   extra_flags    = []
+  # }
 
   pangolin_defaults = {
     enabled     = false
@@ -300,19 +300,19 @@ locals {
     endpoint    = "https://app.pangolin.net"
   }
 
-  docker_defaults = {
-    enabled = true
-  }
+  # docker_defaults = {
+  #   enabled = true
+  # }
 
   wireguard_defaults = {
     enabled = false
     # public_key = ""
   }
 
-  cloudflared_defaults = {
-    enabled      = false
-    tunnel_token = ""
-  }
+  # cloudflared_defaults = {
+  #   enabled      = false
+  #   tunnel_token = ""
+  # }
   warp_defaults = {
     enabled      = false
     tunnel_token = ""
@@ -397,9 +397,9 @@ locals {
   network     = merge(local.network_defaults, { for k, v in try(var.network, {}) : k => v if v != null })
   ssh         = merge(local.ssh_defaults, { for k, v in try(var.ssh, {}) : k => v if v != null })
   storage     = merge(local.storage_defaults, { for k, v in try(var.storage, {}) : k => v if v != null })
-  netbird     = merge(local.netbird_defaults, { for k, v in try(var.netbird, {}) : k => v if v != null })
-  docker      = merge(local.docker_defaults, { for k, v in try(var.docker, {}) : k => v if v != null })
-  cloudflared = merge(local.cloudflared_defaults, { for k, v in try(var.cloudflared, {}) : k => v if v != null })
+  # netbird     = merge(local.netbird_defaults, { for k, v in try(var.netbird, {}) : k => v if v != null })
+  # docker      = merge(local.docker_defaults, { for k, v in try(var.docker, {}) : k => v if v != null })
+  # cloudflared = merge(local.cloudflared_defaults, { for k, v in try(var.cloudflared, {}) : k => v if v != null })
   warp        = merge(local.warp_defaults, { for k, v in try(var.warp, {}) : k => v if v != null })
   wireguard   = merge(local.wireguard_defaults, { for k, v in try(var.wireguard, {}) : k => v if v != null })
   ansible_tmp = merge(local.ansible_defaults, { for k, v in try(var.ansible, {}) : k => v if v != null })

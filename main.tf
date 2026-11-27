@@ -160,14 +160,14 @@ locals {
     #   defer       = false
     #   runcmd_order = 20
     # }
-    "netbird-setup.sh" = {
-      content = templatefile("${path.module}/templates/netbird-setup.sh.tftpl", {
-        enabled     = local.netbird.enabled
-        extra_flags = join(" ", concat(local.netbird.setup_key != "" ? ["--setup-key", local.netbird.setup_key] : [], coalesce(local.netbird.extra_flags, []), local.netbird.management_url != "" ? ["--management-url", local.netbird.management_url] : []))
-      })
-      defer       = false
-      runcmd_order = 40
-    }
+    # "netbird-setup.sh" = {
+    #   content = templatefile("${path.module}/templates/netbird-setup.sh.tftpl", {
+    #     enabled     = local.netbird.enabled
+    #     extra_flags = join(" ", concat(local.netbird.setup_key != "" ? ["--setup-key", local.netbird.setup_key] : [], coalesce(local.netbird.extra_flags, []), local.netbird.management_url != "" ? ["--management-url", local.netbird.management_url] : []))
+    #   })
+    #   defer       = false
+    #   runcmd_order = 40
+    # }
     "pangolin-setup.sh" = {
       content = templatefile("${path.module}/templates/pangolin-setup.sh.tftpl", {
         enabled     = local.pangolin.enabled

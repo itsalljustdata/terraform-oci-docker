@@ -58,43 +58,6 @@ output "storage" {
   description = "Block-volume mount configuration."
 }
 
-output "netbird" {
-  value = merge(
-    { for key, value in local.netbird : key => value if !contains(local.sensitive_output_keys, lower(key)) },
-    { for key, value in local.netbird : key => value != "" ? "**REDACTED**" : "" if contains(local.sensitive_output_keys, lower(key)) }
-  )
-  description = "NetBird settings with setup-key credentials redacted."
-}
-
-output "docker" {
-  value       = local.docker
-  description = "Docker installation settings."
-}
-
-output "cloudflared" {
-  value = merge(
-    { for key, value in local.cloudflared : key => value if !contains(local.sensitive_output_keys, lower(key)) },
-    { for key, value in local.cloudflared : key => value != "" ? "**REDACTED**" : "" if contains(local.sensitive_output_keys, lower(key)) }
-  )
-  description = "Cloudflared settings with tunnel tokens redacted."
-}
-
-output "warp" {
-  value = merge(
-    { for key, value in local.warp : key => value if !contains(local.sensitive_output_keys, lower(key)) },
-    { for key, value in local.warp : key => value != "" ? "**REDACTED**" : "" if contains(local.sensitive_output_keys, lower(key)) }
-  )
-  description = "Warp settings with tunnel tokens redacted."
-}
-
-output "pangolin" {
-  value = merge(
-    { for key, value in local.pangolin : key => value if !contains(local.sensitive_output_keys, lower(key)) },
-    { for key, value in local.pangolin : key => value != "" ? "**REDACTED**" : "" if contains(local.sensitive_output_keys, lower(key)) }
-  )
-  description = "Pangolin settings with site secrets redacted."
-}
-
 output "git" {
   value = merge(
     { for key, value in local.git : key => value if !contains(local.sensitive_output_keys, lower(key)) },
@@ -128,11 +91,6 @@ output "latest_version_ubuntu" {
   description = "Latest available Ubuntu version."  
 }
 
-# output "images_all" {
-#   value       = local.images_all
-#   description = "All available OCI images (based on VM shape)."
-# }
-
 output "image" {
   value       = local.image
   description = "Selected OCI image based on the provided/default image OCID."
@@ -141,4 +99,9 @@ output "image" {
 output "block_mounts" {
   value       = local.block_mounts
   description = "List of block mount configurations."
+}
+
+output "ansible" {
+  value       = local.ansible
+  description = "Ansible configuration settings."
 }
