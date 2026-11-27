@@ -168,7 +168,7 @@ variable "ansible" {
       name = string
       vars = optional(list(object({
         key   = string
-        value = dynamic
+        value = any
       })))
     })))
     deploy_key = optional(string)
