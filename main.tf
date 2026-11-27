@@ -133,10 +133,15 @@ locals {
     # }
     "config" = {
         content     = "Include './config.d/*'"
-        path        = "/home/${local.vm.user}/.ssh"
-        owner       = "${local.vm.user}:${local.vm.user}"
-        permissions = "0600"
-        defer       = true
+        path        = "/etc/skel/.ssh"
+        permissions = "0644"
+        defer       = false
+      }
+    ".config.dummy" = {
+        content     = "# Dummy file"
+        path        = "/etc/skel/.ssh/config.d"
+        permissions = "0644"
+        defer       = false
       }
     "configure-ssh.sh" = {
       content = templatefile("${path.module}/templates/configure-ssh.sh.tftpl", {

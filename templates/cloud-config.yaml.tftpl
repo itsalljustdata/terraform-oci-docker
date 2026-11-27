@@ -107,9 +107,9 @@ ansible:
       - playbook_dir: /home/${vm_user}/ansible-repo
         playbook_name: ${playbook.name}
 %{ if length(playbook.vars) > 0 ~}
-        playbook_opts: >-
+        extra_vars:
 %{ for var in playbook.vars ~}
-          -- extra_vars '${var.key}=${jsonencode(var.value)}'
+          - '${var.key}=${jsonencode(var.value)}'
 %{ endfor ~}
 %{ endif ~}
 %{ endfor ~}

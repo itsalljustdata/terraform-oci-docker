@@ -168,7 +168,7 @@ variable "ansible" {
       name = string
       vars = optional(list(object({
         key   = string
-        value = string
+        value = dynamic
       })))
     })))
     deploy_key = optional(string)
@@ -312,7 +312,6 @@ locals {
     deploy_key_path = null
     repository       = null
     playbooks   = null
-    playbook_extras = null
     deploy_key      = null
   }
 
