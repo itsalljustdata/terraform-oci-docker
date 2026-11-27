@@ -411,19 +411,29 @@ locals {
       local.ansible_tmp.playbooks != null ? local.ansible_tmp.playbooks : []
   )
 
-  ansible = merge(local.ansible_tmp, {
-    repository = local.ansible_tmp.repository != null ? trimspace(local.ansible_tmp.repository) : null
-    playbooks = [
+
+  playbooks = [
       for pb in local.ansible_playbooks : {
         name = trimspace(coalesce(pb.name, ""))
-        vars = pb.vars != null ? [
-          for v in pb.vars : {
+        vars = try(pb.vars, [])
+      }
+  ]
+        
+  playbooks2 = [
+      for pb in local.playbooks : {
+        name = pb.name
+        vars = [
+        for v in pb.vars : {
             key   = trimspace(coalesce(v.key, ""))
             value = v.value
-          }
-        ] : []
+            }
+          ]
       }
-    ]
+  ]
+
+  ansible = merge(local.ansible_tmp, {
+    repository = local.ansible_tmp.repository != null ? trimspace(local.ansible_tmp.repository) : null
+    playbooks = local.playbooks2
     deploy_key = local.do_read_key ? trimspace(file(pathexpand(local.ansible_tmp.deploy_key_path))) : null
   })
   
