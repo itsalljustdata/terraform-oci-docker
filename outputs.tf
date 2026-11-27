@@ -128,10 +128,10 @@ output "latest_version_ubuntu" {
   description = "Latest available Ubuntu version."  
 }
 
-output "images_all" {
-  value       = local.images_all
-  description = "All available OCI images (based on VM shape)."
-}
+# output "images_all" {
+#   value       = local.images_all
+#   description = "All available OCI images (based on VM shape)."
+# }
 
 output "image" {
   value       = local.image

@@ -181,13 +181,13 @@ locals {
       })
       runcmd_order = 70
     }
-    "docker-install.sh" = {
-      content = templatefile("${path.module}/templates/docker-install.sh.tftpl", {
-        enabled = local.docker.enabled
-        vm_user = local.vm.user
-      })
-      runcmd_order = 80
-    }
+    # "docker-install.sh" = {
+    #   content = templatefile("${path.module}/templates/docker-install.sh.tftpl", {
+    #     enabled = local.docker.enabled
+    #     vm_user = local.vm.user
+    #   })
+    #   runcmd_order = 80
+    # }
   },
     local.ansible.enabled ? local.vm_ssh_config_files : {}
   )

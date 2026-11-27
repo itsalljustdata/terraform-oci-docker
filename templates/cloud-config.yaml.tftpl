@@ -150,17 +150,18 @@ write_files:
 #
 bootcmd:
   - if [ -x /usr/bin/rescan-scsi-bus.sh ]; then cloud-init-per once rescan-scsi /usr/bin/rescan-scsi-bus.sh; fi
-#
-# Run commands
-#
-runcmd:
   - systemctl daemon-reload
 %{ for mount in block_vols ~}
   - [ bash, -c, "systemctl start \"$(systemd-escape --path --suffix=automount '${mount.path}')\"" ] # ${mount.display_name}
 %{ endfor ~}
+  - chown -R ${vm_user}:${vm_user} /home/${vm_user}
+#
+# Run commands
+#
 %{ if length(runcmd_files) == 0 ~}
   # No runcmd files specified
 %{ else ~}
+runcmd:
 %{ for name in runcmd_files ~}
   - bash /usr/local/sbin/${coalesce(try(cloud_init_files[name].name, null), name)}
 %{ endfor ~}
