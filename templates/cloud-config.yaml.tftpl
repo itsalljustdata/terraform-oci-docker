@@ -102,16 +102,6 @@ ansible:
     repositories:
       - path: /home/${vm_user}/${ansible_repo_name}
         source: ${ansible.repository}
-    run_ansible:
-%{for playbook in ansible.playbooks ~}
-      - playbook_dir: /home/${vm_user}/${ansible_repo_name}
-        playbook_name: ${playbook.name}
-##{# extra_vars: ${jsonencode(jsonencode({ for var in playbook.vars : var.key => var.value }))} #}
-%{ if length(playbook.vars) > 0 ~}
-        extra_vars: '${jsonencode(playbook.vars)}'
-%{ endif ~}
-%{ endfor ~}
-%{ else }
 #
 # No Ansible configuration
 #
@@ -119,8 +109,21 @@ ansible:
 #
 # Writing cloud init files
 #
+write_files:
+%{for playbook in ansible.playbooks ~}
+  - path: /tmp/cloud-init/ansible/${ansible_repo_name}/${playbook.name}.json
+    permissions: '0600'
+    owner: ${vm_user}:${vm_user}
+    defer: true
+%{ if length(playbook.vars) == 0 ~}
+    content: |
+      {}
+%{ else ~}
+    content: |
+      ${jsonencode(playbook.vars)}
+%{ endif ~}
+%{ endfor ~}
 %{ if length(cloud_init_files) == 0 ~}
-# write_files:
 #   No cloud init files specified
 %{ else ~}
 write_files:
@@ -154,8 +157,10 @@ bootcmd:
 #
 runcmd:
   - systemctl daemon-reload
-%{ for mount in block_vols ~}
-  - [ bash, -c, "systemctl start \"$(systemd-escape --path --suffix=automount '${mount.path}')\"" ] # ${mount.display_name}
+%{for playbook in ansible.playbooks ~}
+  - runuser -u ${vm_user} -- ansible-playbook \
+      /home/${vm_user}/${ansible_repo_name}/${playbook.name} \
+      -e @/tmp/cloud-init/ansible/${ansible_repo_name}/${playbook.name}.json
 %{ endfor ~}
   - chown -R ${vm_user}:${vm_user} /home/${vm_user}
 %{ if length(runcmd_files) == 0 ~}
