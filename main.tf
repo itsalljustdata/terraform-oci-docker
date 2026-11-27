@@ -152,14 +152,14 @@ locals {
       defer       = false
       runcmd_order = 10
     }
-    "configure-firewall.sh" = {
-      content = templatefile("${path.module}/templates/configure-firewall.sh.tftpl", {
-        ssh_public_port = local.ssh.public_port
-        firewall_command = local.ssh.firewall_command
-      })
-      defer       = false
-      runcmd_order = 20
-    }
+    # "configure-firewall.sh" = {
+    #   content = templatefile("${path.module}/templates/configure-firewall.sh.tftpl", {
+    #     ssh_public_port = local.ssh.public_port
+    #     firewall_command = local.ssh.firewall_command
+    #   })
+    #   defer       = false
+    #   runcmd_order = 20
+    # }
     "netbird-setup.sh" = {
       content = templatefile("${path.module}/templates/netbird-setup.sh.tftpl", {
         enabled     = local.netbird.enabled
