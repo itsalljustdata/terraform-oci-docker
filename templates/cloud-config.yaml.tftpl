@@ -102,6 +102,7 @@ ansible:
     repositories:
       - path: /home/${vm_user}/${ansible_repo_name}
         source: ${ansible.repository}
+%{ else ~}
 #
 # No Ansible configuration
 #
@@ -109,9 +110,15 @@ ansible:
 #
 # Writing cloud init files
 #
+%{ if (length(ansible.playbooks) > 0 && ansible.enabled) || length(cloud_init_files) > 0 ~}
 write_files:
+%{ endif ~}
+%{ if ansible.enabled ~}
+%{ if length(ansible.playbooks) == 0 ~}
+  # No Ansible playbooks specified
+%{ else ~}
 %{for playbook in ansible.playbooks ~}
-  - path: /tmp/cloud-init/ansible/${ansible_repo_name}/${playbook.name}.json
+  - path: /home/${vm_user}/${ansible_repo_name}/${playbook.name}.json
     permissions: '0600'
     owner: ${vm_user}:${vm_user}
     defer: true
@@ -119,14 +126,20 @@ write_files:
     content: |
       {}
 %{ else ~}
+%{ if encode_files ~}
+    encoding: b64
+    content: ${base64encode(jsonencode(playbook.vars))}
+%{ else ~}
     content: |
       ${jsonencode(playbook.vars)}
 %{ endif ~}
+%{ endif ~}
 %{ endfor ~}
+%{ endif ~}
+%{ endif ~}
 %{ if length(cloud_init_files) == 0 ~}
 #   No cloud init files specified
 %{ else ~}
-write_files:
 %{ if encode_files ~}
   # Encode mode enabled, file content will be base64 encoded
   # to write the actual file content, set encode_files = false
@@ -157,12 +170,10 @@ bootcmd:
 #
 runcmd:
   - systemctl daemon-reload
-%{for playbook in ansible.playbooks ~}
-  - runuser -u ${vm_user} -- ansible-playbook \
-      /home/${vm_user}/${ansible_repo_name}/${playbook.name} \
-      -e @/tmp/cloud-init/ansible/${ansible_repo_name}/${playbook.name}.json
-%{ endfor ~}
   - chown -R ${vm_user}:${vm_user} /home/${vm_user}
+%{for playbook in ansible.playbooks ~}
+  - cd "/home/${vm_user}/${ansible_repo_name}" && runuser -u ${vm_user} -- ansible-playbook "${playbook.name}" -e @"./${playbook.name}.json"
+%{ endfor ~}
 %{ if length(runcmd_files) == 0 ~}
   # No runcmd files specified
 %{ else ~}
