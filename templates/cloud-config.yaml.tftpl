@@ -171,7 +171,9 @@ write_files:
 runcmd:
   - systemctl daemon-reload
   - chown -R ${vm_user}:${vm_user} /home/${vm_user}
-  - if [ -f /home/${vm_user}/${ansible_repo_name}/galaxy.sh ]; then bash /home/${vm_user}/${ansible_repo_name}/galaxy.sh; fi
+  - if [ -f "/home/${vm_user}/${ansible_repo_name}/requirements.yml" ]; then \
+      runuser -u ${vm_user} -- ansible-galaxy install -r "/home/${vm_user}/${ansible_repo_name}/requirements.yml" \
+    fi
 %{for playbook in ansible.playbooks ~}
   - cd "/home/${vm_user}/${ansible_repo_name}" && runuser -u ${vm_user} -- ansible-playbook "${playbook.name}" -e @"./${playbook.name}.json"
 %{ endfor ~}
