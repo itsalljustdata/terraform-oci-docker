@@ -109,6 +109,11 @@ variable "vm" {
   }
 }
 
+variable "mount_block_vols_playbook" {
+  type = string
+  description = "The Ansible playbook to mount block volumes."
+}
+
 variable "storage" {
   type = object({
     block_vol_mounts = optional(list(object({
@@ -346,6 +351,19 @@ locals {
     create_reserved_ip = false
   }
 
+
+  ansible_block_vol_playbook = (
+    local.ansible_tmp.repository != null && length(local.storage.block_vol_mounts) > 0 && var.mount_block_vols_playbook != ""
+    ? {
+        name = "{{ var.mount_block_vols_playbook }}"
+        vars = [{
+          key   = "mountpoints"
+          value = [for mount in local.storage.block_vol_mounts : mount.path]
+        }]
+      }
+    : null
+  )
+
   oci         = merge(local.oci_defaults, { for k, v in try(var.oci, {}) : k => v if v != null })
   stack       = merge(local.stack_defaults, { for k, v in try(var.stack, {}) : k => v if v != null })
   network     = merge(local.network_defaults, { for k, v in try(var.network, {}) : k => v if v != null })
@@ -358,22 +376,28 @@ locals {
   wireguard   = merge(local.wireguard_defaults, { for k, v in try(var.wireguard, {}) : k => v if v != null })
   ansible_tmp = merge(local.ansible_defaults, { for k, v in try(var.ansible, {}) : k => v if v != null })
   do_read_key = local.ansible_tmp.deploy_key_path != null && trimspace(local.ansible_tmp.deploy_key_path) != ""
+
+  ansible_playbooks =  concat(
+      local.ansible_block_vol_playbook != null ? [local.ansible_block_vol_playbook] : [],
+      local.ansible_tmp.playbooks != null ? local.ansible_tmp.playbooks : []
+  )
+
   ansible = merge(local.ansible_tmp, {
     repository = local.ansible_tmp.repository != null ? trimspace(local.ansible_tmp.repository) : null
-    repository = local.ansible_tmp.repository != null ? trimspace(local.ansible_tmp.repository) : null
-    playbooks = local.ansible_tmp.playbooks != null ? [
-      for pb in local.ansible_tmp.playbooks : {
+    playbooks = [
+      for pb in local.ansible_playbooks : {
         name = trimspace(coalesce(pb.name, ""))
         vars = pb.vars != null ? [
           for v in pb.vars : {
-            key = trimspace(coalesce(v.key, ""))
-            value = trimspace(coalesce(v.value, ""))
+            key   = trimspace(coalesce(v.key, ""))
+            value = v.value
           }
         ] : []
       }
-    ] : null
+    ]
     deploy_key = local.do_read_key ? trimspace(file(pathexpand(local.ansible_tmp.deploy_key_path))) : null
   })
+  
   ansible_repo_hostname = (
         local.ansible.repository != null &&
         startswith(local.ansible.repository, "git@")
