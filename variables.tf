@@ -114,6 +114,11 @@ variable "mount_block_vols_playbook_name" {
   description = "The Ansible playbook to mount block volumes."
 }
 
+variable "ssh_config_playbook_name" {
+  type        = string
+  description = "The Ansible playbook to configure SSH."
+}
+
 variable "storage" {
   type = object({
     block_vol_mounts = optional(list(object({
@@ -353,6 +358,7 @@ locals {
 
 
   mount_block_vols_playbook_name = var.mount_block_vols_playbook_name != "" ? trimspace(var.mount_block_vols_playbook_name) : ""
+  ssh_config_playbook_name = var.ssh_config_playbook_name != "" ? trimspace(var.ssh_config_playbook_name) : ""
   ansible_block_vol_playbook = (
     local.ansible_tmp.repository != null && length(local.storage.block_vol_mounts) > 0 && local.mount_block_vols_playbook_name != ""
     ? {
@@ -361,6 +367,27 @@ locals {
           key   = "mountpoints"
           value = [for mount in local.storage.block_vol_mounts : mount.path]
         }]
+      }
+    : null
+  )
+
+  ansible_ssh = (
+    local.ansible_tmp.repository != null && local.ssh_config_playbook_name != "" ? {
+        name = local.ssh_config_playbook_name
+        vars = [
+          {
+            key   = "ssh_port"
+            value = local.ssh.public_port
+          },
+          {
+            key   = "ssh_user"
+            value = local.vm.user
+          },
+          {
+            key   = "ssh_authorized_keys"
+            value = local.ssh_public_keys_content
+          }
+        ]
       }
     : null
   )
@@ -380,6 +407,7 @@ locals {
 
   ansible_playbooks =  concat(
       local.ansible_block_vol_playbook != null ? [local.ansible_block_vol_playbook] : [],
+      local.ansible_ssh != null ? [local.ansible_ssh] : [],
       local.ansible_tmp.playbooks != null ? local.ansible_tmp.playbooks : []
   )
 

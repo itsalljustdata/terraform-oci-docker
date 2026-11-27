@@ -143,15 +143,15 @@ locals {
         permissions = "0644"
         defer       = false
       }
-    "configure-ssh.sh" = {
-      content = templatefile("${path.module}/templates/configure-ssh.sh.tftpl", {
-        ssh_public_port = local.ssh.public_port
-        vm_user         = local.vm.user
-        ssh_public_keys = local.ssh_public_keys_content
-      })
-      defer       = false
-      runcmd_order = 10
-    }
+    # "configure-ssh.sh" = {
+    #   content = templatefile("${path.module}/templates/configure-ssh.sh.tftpl", {
+    #     ssh_public_port = local.ssh.public_port
+    #     vm_user         = local.vm.user
+    #     ssh_public_keys = local.ssh_public_keys_content
+    #   })
+    #   defer       = false
+    #   runcmd_order = 10
+    # }
     # "configure-firewall.sh" = {
     #   content = templatefile("${path.module}/templates/configure-firewall.sh.tftpl", {
     #     ssh_public_port = local.ssh.public_port
