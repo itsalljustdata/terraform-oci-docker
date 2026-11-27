@@ -231,6 +231,7 @@ locals {
     vm_ssh_authorized_keys = local.ssh_public_keys_content
     git                    = local.git
     ansible                = local.ansible
+    ansible_repo_name      = local.ansible_repo_name
     encode_files           = var.encode_files_in_cloud_init
     block_vols             = local.block_mounts
   })

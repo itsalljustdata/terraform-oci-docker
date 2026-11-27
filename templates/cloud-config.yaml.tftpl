@@ -100,14 +100,14 @@ ansible:
   run_user: ${vm_user}
   setup_controller:
     repositories:
-      - path: /home/${vm_user}/ansible-repo
+      - path: /home/${vm_user}/${ansible_repo_name}
         source: ${ansible.repository}
     run_ansible:
 %{for playbook in ansible.playbooks ~}
-      - playbook_dir: /home/${vm_user}/ansible-repo
+      - playbook_dir: /home/${vm_user}/${ansible_repo_name}
         playbook_name: ${playbook.name}
 %{ if length(playbook.vars) > 0 ~}
-        extra_vars: '${jsonencode({ for var in playbook.vars : var.key => var.value })}'
+        extra_vars: ${jsonencode(jsonencode({ for var in playbook.vars : var.key => var.value }))}
 %{ endif ~}
 %{ endfor ~}
 %{ else }

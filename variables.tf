@@ -109,7 +109,7 @@ variable "vm" {
   }
 }
 
-variable "mount_block_vols_playbook" {
+variable "mount_block_vols_playbook_name" {
   type = string
   description = "The Ansible playbook to mount block volumes."
 }
@@ -352,10 +352,11 @@ locals {
   }
 
 
+  mount_block_vols_playbook_name = var.mount_block_vols_playbook_name != "" ? trimspace(var.mount_block_vols_playbook_name) : ""
   ansible_block_vol_playbook = (
-    local.ansible_tmp.repository != null && length(local.storage.block_vol_mounts) > 0 && var.mount_block_vols_playbook != ""
+    local.ansible_tmp.repository != null && length(local.storage.block_vol_mounts) > 0 && local.mount_block_vols_playbook_name != ""
     ? {
-        name = "{{ var.mount_block_vols_playbook }}"
+        name = local.mount_block_vols_playbook_name
         vars = [{
           key   = "mountpoints"
           value = [for mount in local.storage.block_vol_mounts : mount.path]
@@ -404,6 +405,11 @@ locals {
         ? try(regex("^git@([^:]+):", local.ansible.repository)[0], null)
         : null
       )
+
+  ansible_repo_name = local.ansible.repository != null ? trimsuffix(
+    split("/", local.ansible.repository)[length(split("/", local.ansible.repository)) - 1],
+    ".git"
+  ) : "ansible-repo"
 
   vm_tmp = merge(local.vm_defaults, { for k, v in try(var.vm, {}) : k => v if v != null })
 
