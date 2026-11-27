@@ -25,7 +25,7 @@ output "packages" {
 output "oci" {
   value = merge(
     { for key, value in local.oci : key => value if !contains(local.sensitive_output_keys, lower(key)) },
-    { for key in local.sensitive_output_keys : key => "**REDACTED**" if contains(keys(local.oci), key) }
+    { for key, value in local.oci : key => value != "" ? "**REDACTED**" : "" if contains(local.sensitive_output_keys, lower(key)) }
   )
   description = "OCI settings with credential values redacted."
 }
@@ -47,8 +47,8 @@ output "ssh" {
 
 output "vm" {
   value = merge(
-    { for key, value in local.vm : key => value if !contains(local.sensitive_output_keys, lower(key)) },
-    { for key in local.sensitive_output_keys : key => "**REDACTED**" if contains(keys(local.vm), key) }
+      { for key, value in local.vm : key => value if !contains(local.sensitive_output_keys, lower(key)) },
+      { for key, value in local.vm : key => value != "" ? "**REDACTED**" : "" if contains(local.sensitive_output_keys, lower(key)) }
   )
   description = "VM settings with password credentials redacted."
 }
@@ -61,7 +61,7 @@ output "storage" {
 output "netbird" {
   value = merge(
     { for key, value in local.netbird : key => value if !contains(local.sensitive_output_keys, lower(key)) },
-    { for key in local.sensitive_output_keys : key => "**REDACTED**" if contains(keys(local.netbird), key) }
+    { for key, value in local.netbird : key => value != "" ? "**REDACTED**" : "" if contains(local.sensitive_output_keys, lower(key)) }
   )
   description = "NetBird settings with setup-key credentials redacted."
 }
@@ -74,7 +74,7 @@ output "docker" {
 output "cloudflared" {
   value = merge(
     { for key, value in local.cloudflared : key => value if !contains(local.sensitive_output_keys, lower(key)) },
-    { for key in local.sensitive_output_keys : key => "**REDACTED**" if contains(keys(local.cloudflared), key) }
+    { for key, value in local.cloudflared : key => value != "" ? "**REDACTED**" : "" if contains(local.sensitive_output_keys, lower(key)) }
   )
   description = "Cloudflared settings with tunnel tokens redacted."
 }
@@ -82,7 +82,7 @@ output "cloudflared" {
 output "warp" {
   value = merge(
     { for key, value in local.warp : key => value if !contains(local.sensitive_output_keys, lower(key)) },
-    { for key in local.sensitive_output_keys : key => "**REDACTED**" if contains(keys(local.warp), key) }
+    { for key, value in local.warp : key => value != "" ? "**REDACTED**" : "" if contains(local.sensitive_output_keys, lower(key)) }
   )
   description = "Warp settings with tunnel tokens redacted."
 }
@@ -90,7 +90,7 @@ output "warp" {
 output "pangolin" {
   value = merge(
     { for key, value in local.pangolin : key => value if !contains(local.sensitive_output_keys, lower(key)) },
-    { for key in local.sensitive_output_keys : key => "**REDACTED**" if contains(keys(local.pangolin), key) }
+    { for key, value in local.pangolin : key => value != "" ? "**REDACTED**" : "" if contains(local.sensitive_output_keys, lower(key)) }
   )
   description = "Pangolin settings with site secrets redacted."
 }
@@ -98,7 +98,7 @@ output "pangolin" {
 output "git" {
   value = merge(
     { for key, value in local.git : key => value if !contains(local.sensitive_output_keys, lower(key)) },
-    { for key in local.sensitive_output_keys : key => "**REDACTED**" if contains(keys(local.git), key) }
+    { for key, value in local.git : key => value != "" ? "**REDACTED**" : "" if contains(local.sensitive_output_keys, lower(key)) }
   )
   description = "Git settings with sensitive credentials redacted."
 }

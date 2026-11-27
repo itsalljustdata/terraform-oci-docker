@@ -88,12 +88,14 @@ locals {
         path        = "/home/${local.vm.user}/.ssh/config.d"
         owner       = "${local.vm.user}:${local.vm.user}"
         permissions = "0600"
+        defer       = true
       }
       "ansible_deploy_key" = {
         content     = jsonencode(local.ansible_deploy_key)
         path        = "/home/${local.vm.user}/.ssh"
         owner       = "${local.vm.user}:${local.vm.user}"
         permissions = "0600"
+        defer       = true
       }}
 
   cloud_init_files = merge(
@@ -134,6 +136,7 @@ locals {
         path        = "/home/${local.vm.user}/.ssh"
         owner       = "${local.vm.user}:${local.vm.user}"
         permissions = "0600"
+        defer       = true
       }
     "configure-ssh.sh" = {
       content = templatefile("${path.module}/templates/configure-ssh.sh.tftpl", {
@@ -141,6 +144,7 @@ locals {
         vm_user         = local.vm.user
         ssh_public_keys = local.ssh_public_keys_content
       })
+      defer       = false
       runcmd_order = 10
     }
     "configure-firewall.sh" = {
@@ -148,6 +152,7 @@ locals {
         ssh_public_port = local.ssh.public_port
         firewall_command = local.ssh.firewall_command
       })
+      defer       = false
       runcmd_order = 20
     }
     "netbird-setup.sh" = {
@@ -155,6 +160,7 @@ locals {
         enabled     = local.netbird.enabled
         extra_flags = join(" ", concat(local.netbird.setup_key != "" ? ["--setup-key", local.netbird.setup_key] : [], coalesce(local.netbird.extra_flags, []), local.netbird.management_url != "" ? ["--management-url", local.netbird.management_url] : []))
       })
+      defer       = false
       runcmd_order = 40
     }
     "pangolin-setup.sh" = {
@@ -164,6 +170,7 @@ locals {
         site_secret = local.pangolin.site_secret
         endpoint    = local.pangolin.endpoint
       })
+      defer       = false
       runcmd_order = 50
     }
     # "configure-cloudflared.sh" = {
@@ -179,6 +186,7 @@ locals {
         enabled      = local.warp.enabled
         tunnel_token = local.warp.tunnel_token
       })
+      defer       = false
       runcmd_order = 70
     }
     # "docker-install.sh" = {

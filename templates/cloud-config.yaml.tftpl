@@ -136,6 +136,7 @@ write_files:
   - path: ${coalesce(try(file.path, null), "/usr/local/sbin")}/${coalesce(try(file.name, null), name)}
     permissions: '${coalesce(try(file.permissions, null), "0755")}'
     owner: ${coalesce(try(file.owner, null), "root:root")}
+    defer: ${coalesce(try(file.defer, null), false)}
 %{ if encode_files ~}
     encoding: b64 # ASCII Content Length (bytes): ${length(file.content)}
     content: ${base64encode(file.content)}
